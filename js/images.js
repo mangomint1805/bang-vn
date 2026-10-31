@@ -36,7 +36,7 @@ export const IMG = {
 export function imgSrc(key) { return `img/${key}.jpg`; }
 export function imgTag(key) {
   const pos = IMG[key]?.pos || '50% 50%';
-  return `<img src="${imgSrc(key)}" alt="" loading="lazy" draggable="false" style="object-position:${pos}">`;
+  return `<img src="${imgSrc(key)}" alt="" draggable="false" style="object-position:${pos}">`;
 }
 // Avatar tròn: phóng quanh tiêu điểm
 export function avatarTag(key) {
