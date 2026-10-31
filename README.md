@@ -13,6 +13,7 @@ Một người **tạo phòng** (máy đó chạy luật game), những người
 - Hiệu ứng: chia bài bay, vệt đạn + chớp nòng, Gatling quét, mũi tên Thổ dân, thuốc nổ rung màn hình, dấu "HỤT!", song sắt Nhà tù, lấp lánh hồi máu, pháo giấy khi thắng
 - Thêm/xoá bot, rớt mạng vào lại đúng ghế (20 giây không về thì bot đánh thay)
 - Chế độ chơi một mình với bot (offline)
+- Hướng dẫn chơi đầy đủ ngay trong game (nút 📖), soạn theo sách luật chính thức của dV Giochi
 
 ## Chạy tại chỗ
 ES module không chạy bằng `file://`, cần một web server bất kỳ:
@@ -32,6 +33,7 @@ rồi mở http://localhost:8000.
 | `js/fx.js` | Bài bay, đạn, nổ, pháo giấy, âm thanh hiệu ứng |
 | `js/themes.js` | 5 chủ đề + hạt nền động |
 | `js/music.js` | Nhạc nền tự sinh |
+| `js/guide.js` | Hướng dẫn chơi trong game |
 | `js/images.js` | Tranh cho từng lá / nhân vật, tiêu điểm cắt ảnh |
 | `test/sim.mjs` | `node test/sim.mjs 500` – cho bot đánh nhau để kiểm tra luật |
 

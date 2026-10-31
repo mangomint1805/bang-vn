@@ -1,9 +1,10 @@
 // Giao diện + nối với lớp mạng
-import { CARD_INFO, CHARACTERS, ROLES, SUIT_SYMBOL, rankLabel, cardLabel } from './cards.js';
+import { CARD_INFO, CHARACTERS, ROLES, SUIT_SYMBOL, rankLabel, cardLabel, suitify } from './cards.js';
 import { Host, Client } from './net.js';
 import { imgTag, avatarTag } from './images.js';
 import { sfx, fly, shake, flash, floatText, banner, toggleMute, isMuted, shoot, arrows, explode, sparkle, confetti, stamp, screenShake } from './fx.js';
 import { THEMES, getTheme, setTheme, onThemeChange } from './themes.js';
+import { openGuide } from './guide.js';
 import { musicSetTheme, musicToggle, musicIsOn, musicVolume, musicResumeIfOn } from './music.js';
 
 const $ = s => document.querySelector(s);
@@ -125,7 +126,7 @@ function roleCardHTML(role, size = '') {
 function charCardHTML(id, size = '') {
   const ch = CHARACTERS[id];
   return `<div class="pcard char ${size}"><div class="ctop"><span class="ktag">Wanted</span><span class="chp">${'●'.repeat(ch.hp)}</span></div><div class="art">${imgTag(id)}</div>
-    <div class="cname">${ch.name}</div>${size === 'lg' ? `<div class="cdesc">${ch.desc}</div>` : ''}</div>`;
+    <div class="cname">${ch.name}</div>${size === 'lg' ? `<div class="cdesc">${suitify(ch.desc)}</div>` : ''}</div>`;
 }
 
 // ---------- Render bàn chơi ----------
@@ -159,7 +160,7 @@ const tip = el('div', '', ''); tip.id = 'card-tip'; document.body.appendChild(ti
 function attachTip(ce, c, opt) {
   const info = CARD_INFO[c.type];
   ce.addEventListener('mouseenter', () => {
-    tip.innerHTML = `<div class="te">${info.kind === 'gun' ? 'Súng · tầm ' + info.range : KIND_TAG[info.kind]} · ${rankLabel(c.rank)}${SUIT_SYMBOL[c.suit]}</div><div class="tn">${info.name}</div><div class="td">${info.desc}</div>${opt && !opt.ok ? `<div class="tw">⛔ ${opt.reason}</div>` : ''}`;
+    tip.innerHTML = `<div class="te">${info.kind === 'gun' ? 'Súng · tầm ' + info.range : KIND_TAG[info.kind]} · ${rankLabel(c.rank)}${suitify(SUIT_SYMBOL[c.suit])}</div><div class="tn">${info.name}</div><div class="td">${suitify(info.desc)}</div>${opt && !opt.ok ? `<div class="tw">⛔ ${opt.reason}</div>` : ''}`;
     const r = ce.getBoundingClientRect(); const x = Math.min(innerWidth - 260, Math.max(10, r.left + r.width / 2 - 125));
     tip.style.left = x + 'px'; tip.style.top = Math.max(50, r.top - 40 - tip.offsetHeight) + 'px'; tip.classList.add('on');
   });
@@ -278,7 +279,7 @@ function renderActions() {
 function renderFeed() {
   const f = $('#feed'); if (!f) return;
   const lines = view.log.filter(l => !/^— Lượt|^Ván mới/.test(l)).slice(-3);
-  f.innerHTML = lines.map((l, i) => `<div class="${i === lines.length - 1 ? 'new' : ''}">${esc(l)}</div>`).join('');
+  f.innerHTML = lines.map((l, i) => `<div class="${i === lines.length - 1 ? 'new' : ''}">${suitify(esc(l))}</div>`).join('');
 }
 function renderPrompt() {
   const v = view, p = $('#prompt'); p.innerHTML = ''; p.className = 'prompt';
@@ -319,7 +320,7 @@ function renderPrompt() {
     } else {
       p.appendChild(el('div', 'ptitle', pr.character === 'jessejones' ? 'Jesse Jones: rút từ bộ bài, hoặc bấm 1 người để lấy 1 lá tay họ' : 'Pedro Ramirez: rút từ bộ bài, hoặc lấy lá trên cùng chồng bỏ'));
       const b1 = el('button', 'btn primary', 'Rút 2 từ bộ bài'); b1.onclick = () => send({ type: 'draw_from_deck' }); row.appendChild(b1);
-      if (pr.character === 'pedroramirez' && v.discardTop) { const b2 = el('button', 'btn', `Lấy ${cardLabel(v.discardTop)}`); b2.onclick = () => send({ type: 'draw_from_discard' }); row.appendChild(b2); }
+      if (pr.character === 'pedroramirez' && v.discardTop) { const b2 = el('button', 'btn', `Lấy ${suitify(cardLabel(v.discardTop))}`); b2.onclick = () => send({ type: 'draw_from_discard' }); row.appendChild(b2); }
     }
     p.appendChild(row);
   }
@@ -354,7 +355,7 @@ function closeModal() { $('#modal').classList.add('hidden'); }
 let lastLogLen = 0;
 function renderLog() {
   const l = $('#log-list'); l.innerHTML = '';
-  for (const line of view.log) l.appendChild(el('div', '', esc(line)));
+  for (const line of view.log) l.appendChild(el('div', '', suitify(esc(line))));
   l.scrollTop = l.scrollHeight;
   lastLogLen = view.log.length;
 }
@@ -437,17 +438,9 @@ function animateDiff(a, b) {
   }
 }
 
-// ---------- Luật tóm tắt ----------
-$('#rules-content').innerHTML = `
-<h4>Mục tiêu</h4>
-<ul>${Object.values(ROLES).map(r => `<li><b>${r.icon} ${r.name}</b>: ${r.desc}</li>`).join('')}</ul>
-<h4>Lượt chơi</h4><p>1) Rút 2 lá. 2) Đánh bài tuỳ ý (mỗi lượt chỉ 1 lá Bắn!). 3) Bỏ bài xuống bằng số máu.</p>
-<h4>Khoảng cách</h4><p>Người ngồi cạnh = 1. Súng quyết định tầm bắn (không súng = 1). Mustang làm người khác thấy bạn xa hơn 1, Ống ngắm làm bạn thấy người khác gần hơn 1.</p>
-<h4>Các lá bài</h4>
-<ul>${Object.values(CARD_INFO).map(c => `<li><b>${c.name}</b> <i>(${c.en})</i>: ${c.desc}</li>`).join('')}</ul>
-<h4>Nhân vật</h4>
-<ul>${Object.values(CHARACTERS).map(c => `<li><b>${c.name}</b> (${c.hp} máu): ${c.desc}</li>`).join('')}</ul>
-<p class="muted" style="font-size:12px">Tranh minh hoạ: Frederic Remington &amp; Charles M. Russell (public domain, Wikimedia Commons).</p>`;
+// ---------- Hướng dẫn ----------
+$('#btn-guide-home').onclick = () => openGuide();
+$('#btn-guide').onclick = () => openGuide();
 
 window.addEventListener('beforeunload', e => { if (net && view && view.phase === 'playing') { e.preventDefault(); e.returnValue = ''; } });
 
