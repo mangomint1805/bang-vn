@@ -154,6 +154,27 @@ function hpDots(p) {
   return `<div class="hpbar">${s}</div>`;
 }
 
+// ---------- Khung mô tả lá bài ----------
+const tip = el('div', '', ''); tip.id = 'card-tip'; document.body.appendChild(tip);
+function attachTip(ce, c, opt) {
+  const info = CARD_INFO[c.type];
+  ce.addEventListener('mouseenter', () => {
+    tip.innerHTML = `<div class="te">${info.kind === 'gun' ? 'Súng · tầm ' + info.range : KIND_TAG[info.kind]} · ${rankLabel(c.rank)}${SUIT_SYMBOL[c.suit]}</div><div class="tn">${info.name}</div><div class="td">${info.desc}</div>${opt && !opt.ok ? `<div class="tw">⛔ ${opt.reason}</div>` : ''}`;
+    const r = ce.getBoundingClientRect(); const x = Math.min(innerWidth - 260, Math.max(10, r.left + r.width / 2 - 125));
+    tip.style.left = x + 'px'; tip.style.top = Math.max(50, r.top - 40 - tip.offsetHeight) + 'px'; tip.classList.add('on');
+  });
+  ce.addEventListener('mouseleave', () => tip.classList.remove('on'));
+  ce.addEventListener('click', () => tip.classList.remove('on'));
+}
+// ---------- Bong bóng thoại ----------
+function bubbleAt(pid, card) {
+  const anchor = pid === myId ? $('#me-info') : seatEl(pid)?.querySelector('.avatar'); if (!anchor) return;
+  const r = anchor.getBoundingClientRect(); const info = CARD_INFO[card.type];
+  const b = el('div', 'bubble', `${imgTag(card.type)}<span>${info.name}</span>`);
+  b.style.left = (r.left + r.width / 2) + 'px'; b.style.top = (r.top - 6) + 'px';
+  document.body.appendChild(b); setTimeout(() => b.remove(), 2000);
+}
+
 function render() {
   const v = view; if (!v) return;
   const cur = v.players[v.turn];
@@ -201,7 +222,7 @@ function render() {
   mine.classList.toggle('dead', !m.alive);
   $('#me-cards').innerHTML = charCardHTML(m.character, 'sm') + (m.role ? roleCardHTML(m.role, 'sm') : '');
   $('#me-cards .char').onclick = () => showCharacter(m);
-  $('#me-info').innerHTML = `<div class="pname">${esc(m.name)}</div>${hpDots(m)}<div class="muted">Tầm bắn ${m.gunRange}${m.bangs ? ' · đã bắn ' + m.bangs : ''}</div>`;
+  $('#me-info').innerHTML = `<div class="me-ava"><div class="face">${avatarTag(m.character)}</div></div><div><div class="pname">${esc(m.name)}</div>${hpDots(m)}<div class="muted">${ch.name} · tầm bắn ${m.gunRange}${m.bangs ? ' · đã bắn ' + m.bangs : ''}</div></div>`;
   const mt = $('#me-table'); mt.innerHTML = '';
   for (const c of m.table) mt.appendChild(cardEl(c, 'sm'));
 
@@ -229,6 +250,7 @@ function render() {
       if (o.ok) { ce.classList.add('playable'); if (selectedCard === c.id) ce.classList.add('selected'); ce.onclick = () => clickCard(c, o); }
       else { ce.classList.add('disabled'); ce.title += '\n⛔ ' + o.reason; ce.onclick = () => toast(o.reason); }
     }
+    attachTip(ce, c, v.myOptions?.[c.id]);
     hand.appendChild(ce);
   });
   renderActions(); renderLog();
@@ -395,12 +417,13 @@ function animateDiff(a, b) {
     if (pb.hp < pa.hp) setTimeout(() => { shake(box); flash(box); floatText(txtAt, `-${pa.hp - pb.hp}`); sfx.hit(); }, hitDelay);
     if (pb.hp > pa.hp && pb.alive) { floatText(txtAt, `+${pb.hp - pa.hp}`, '#3f8f4f'); flash(box, 'flash-heal'); sparkle(txtAt); }
     if (pa.alive && !pb.alive) setTimeout(() => banner(`☠ ${esc(pb.name)} bị loại`, pb.role ? ROLES[pb.role].name : ''), hitDelay + 300);
-    if (pb.table.length > pa.table.length) { const nc = pb.table.find(c => !pa.table.some(x => x.id === c.id)); if (nc) { const tgt = pb.id === myId ? $('#me-table') : anchor?.querySelector('.equip'); const src = a.players[a.turn].id === myId ? $('#me-hand') : seatEl(a.players[a.turn].id); fly(cardEl(nc, 'sm').outerHTML, src || anchor, tgt || anchor, { duration: 450 }); } }
+    if (pb.table.length > pa.table.length) { const nc = pb.table.find(c => !pa.table.some(x => x.id === c.id)); if (nc) { if (nc.type !== 'dynamite' || pa.handCount > pb.handCount) bubbleAt(nc.type === 'jail' ? a.players[a.turn].id : pb.id, nc); const tgt = pb.id === myId ? $('#me-table') : anchor?.querySelector('.equip'); const src = a.players[a.turn].id === myId ? $('#me-hand') : seatEl(a.players[a.turn].id); fly(cardEl(nc, 'sm').outerHTML, src || anchor, tgt || anchor, { duration: 450 }); } }
   }
   // Lá vừa bỏ bay về chồng bỏ
   if (b.discardTop && (!a.discardTop || a.discardTop.id !== b.discardTop.id)) {
     const loser = b.players.find(pb => { const pa = a.players.find(x => x.id === pb.id); return pa && pb.handCount < pa.handCount; });
     fly(cardEl(b.discardTop, 'sm').outerHTML, loser ? anchorFor(loser.id) : $('#deck'), $('#discard'), { duration: 420, rotate: (Math.random() * 10 - 5) });
+    if (loser && b.phase === 'playing' && !(b.prompt && b.prompt.type === 'discard' && b.prompt.player === loser.id) && !(a.prompt && a.prompt.type === 'discard')) bubbleAt(loser.id, b.discardTop);
   }
   if (a.phase === 'playing' && b.phase === 'ended') {
     const names = { law: 'Phe Cảnh sát thắng!', outlaw: 'Tội phạm thắng!', renegade: 'Kẻ hai mặt thắng!' };
