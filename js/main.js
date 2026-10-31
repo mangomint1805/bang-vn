@@ -149,7 +149,7 @@ const SEATS = {
   3: [[10, 50], [50, 12], [90, 50]],
   4: [[9, 60], [27, 14], [73, 14], [91, 60]],
   5: [[7, 64], [17, 22], [50, 10], [83, 22], [93, 64]],
-  6: [[6, 68], [13, 30], [35, 10], [65, 10], [87, 30], [94, 68]],
+  6: [[5, 76], [12, 27], [35, 9], [65, 9], [88, 27], [95, 76]],
 };
 const SEATS_P = { // màn hình dọc (điện thoại)
   3: [[15, 50], [50, 9], [85, 50]],
@@ -176,6 +176,12 @@ function showIntro() {
       <p class="tip">💡 Vai trò và kỹ năng luôn hiện ở góc dưới bên trái. Bấm vào đó để xem lại màn này.</p></div>
     <div class="row"><button class="btn ghost" id="intro-guide">📖 Xem luật</button><button class="btn primary" id="intro-ok">Đã hiểu, vào ván!</button></div></div>`);
   $('#intro-ok').onclick = closeModal; $('#intro-guide').onclick = () => { closeModal(); openGuide(); };
+}
+// Xấp bài úp xoè ra theo số lá trên tay
+function handFan(n) {
+  const k = Math.min(n, 6); let backs = '';
+  for (let i = 0; i < k; i++) { const off = i - (k - 1) / 2; backs += `<i style="--r:${off * 9}deg;--x:${off * 7}px"></i>`; }
+  return `<span class="hfan" title="${n} lá trên tay"><span class="backs" style="--n:${k}">${backs}</span><b>${n}</b></span>`;
 }
 function hpDots(p) {
   let s = ''; for (let i = 0; i < p.maxHp; i++) s += `<i class="bul${i < p.hp ? ' on' : ''}">${BULLET}</i>`;
@@ -224,10 +230,11 @@ function render() {
     const TH = table.clientHeight, top = Math.min(Math.max(y / 100 * TH, portrait ? 52 : 78), TH - (portrait ? 48 : 70));
     seat.style.left = x + '%'; seat.style.top = top + 'px';
     const ch = CHARACTERS[p.character];
-    const role = p.role ? `<div class="role-chip ${p.role}" title="${ROLES[p.role].desc}">${ROLES[p.role].icon} ${ROLES[p.role].name}</div>` : '';
+    const role = p.role ? `<div class="role-chip ${p.role}" title="${ROLES[p.role].desc}">${ROLES[p.role].icon} ${ROLES[p.role].name}</div>`
+      : `<div class="role-chip hidden-role" title="Vai trò chỉ lộ khi người này bị loại (Cảnh sát trưởng lộ từ đầu)">❓ Chưa lộ</div>`;
     seat.innerHTML = `
       <div class="avatar"><div class="face">${avatarTag(p.character)}</div>${p.distance != null ? `<div class="dist" title="Khoảng cách từ bạn tới ${esc(p.name)}"><b>${p.distance}</b><small>cách</small></div>` : ''}${p.table.some(c => c.type === 'jail') ? '<div class="bars"></div>' : ''}${p.table.some(c => c.type === 'dynamite') ? '<div class="fuse">🧨</div>' : ''}${!p.alive ? '<div class="rip">☠</div>' : ''}</div>
-      <div class="plate"><div class="pname">${esc(p.name)}</div><div class="pchar">${ch.name}</div>${hpDots(p)}<div class="stats"><span title="Số lá trên tay">🂠 ${p.handCount}</span><span class="rngbig" title="Tầm bắn của ${esc(p.name)}">🎯 ${p.gunRange}</span></div>${role}</div>
+      <div class="plate"><div class="pname">${esc(p.name)}</div><div class="pchar">${ch.name}</div>${hpDots(p)}<div class="stats">${handFan(p.handCount)}<span class="rngbig" title="Tầm bắn của ${esc(p.name)}">🎯 ${p.gunRange}</span></div>${role}</div>
       <div class="equip ${x < 50 ? 'right' : 'left'}"></div>`;
     const eq = seat.querySelector('.equip');
     for (const c of p.table) { const info = CARD_INFO[c.type]; const m = el('span', 'eqchip ' + info.kind, `${imgTag(c.type)}<b>${info.name}</b>`); m.title = `${info.name}: ${info.desc}`; eq.appendChild(m); }
@@ -345,9 +352,9 @@ function renderPrompt() {
   }
   if (pr.type === 'discard') { p.appendChild(el('div', 'ptitle', mine ? `Bỏ bớt ${me().handCount - me().hp} lá` : `${who.name} đang bỏ bớt bài…`)); if (mine) p.appendChild(el('div', 'sub', 'Bấm vào lá muốn bỏ.')); return; }
   if (pr.type === 'store') {
-    p.appendChild(el('div', 'ptitle', `🏪 Tạp hóa – ${mine ? 'chọn 1 lá' : 'chờ ' + who.name + ' chọn'}`));
-    const row = el('div', 'row');
-    for (const c of pr.cards) { const ce = cardEl(c, 'sm'); if (mine) { ce.classList.add('playable'); ce.onclick = () => send({ type: 'store_pick', cardId: c.id }); } row.appendChild(ce); }
+    p.appendChild(el('div', 'ptitle', `🏪 Tạp hóa – ${mine ? 'bạn chọn 1 lá' : esc(who.name) + ' đang chọn'}`));
+    const row = el('div', 'row store-row' + (mine ? '' : ' peek'));
+    for (const c of pr.cards) { const ce = cardEl(c, 'sm'); if (mine) { ce.classList.add('playable'); attachTip(ce, c); ce.onclick = () => send({ type: 'store_pick', cardId: c.id }); } row.appendChild(ce); }
     p.appendChild(row); return;
   }
   if (pr.type === 'draw_option') {

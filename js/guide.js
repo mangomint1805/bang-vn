@@ -54,6 +54,7 @@ export function guideHTML() {
 <table class="g-table"><tr><th>Số người</th><th>Cảnh sát trưởng</th><th>Phó cảnh sát</th><th>Tội phạm</th><th>Kẻ hai mặt</th></tr>
 <tr><td>4</td><td>1</td><td>–</td><td>2</td><td>1</td></tr><tr><td>5</td><td>1</td><td>1</td><td>2</td><td>1</td></tr>
 <tr><td>6</td><td>1</td><td>1</td><td>3</td><td>1</td></tr><tr><td>7</td><td>1</td><td>2</td><td>3</td><td>1</td></tr></table>
+<p class="g-note"><b>Khi nào vai trò bị lộ?</b> Cảnh sát trưởng lộ ngay từ đầu. Vai trò của những người khác chỉ lật lên khi họ <b>bị loại</b>, và hết ván thì lộ tất cả. Trên bàn, người chưa lộ có nhãn "❓ Chưa lộ".</p>
 <p class="g-note">Kẻ hai mặt muốn thắng phải là <b>người cuối cùng còn sống</b>. Nếu Cảnh sát trưởng chết khi vẫn còn người khác, Tội phạm thắng (kể cả khi Tội phạm đã chết hết).</p></section>
 
 <section id="g-setup"><h3>2. Chuẩn bị</h3><ul>

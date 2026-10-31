@@ -508,3 +508,19 @@ label { display: block; font-weight: 700; margin: 12px 0 4px; text-align: left; 
 @media (max-width: 760px) { .me-info { width: auto; max-width: none; } .me-cols { gap: 5px; margin-top: 5px; } .me-cols .me-role, .me-cols .me-skill { font-size: 11px; } .hand { min-height: 120px; } }
 
 @media (max-width: 760px) { .hide-m { display: none; } .me-range small { font-size: 7px; } }
+
+/* xấp bài úp của đối thủ */
+.seat .stats { align-items: center; }
+.seat .stats .hfan { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px 0 4px; background: none; }
+.hfan .backs { position: relative; display: inline-block; height: 26px; width: calc(22px + var(--n, 1) * 7px); }
+.hfan .backs i { position: absolute; left: 50%; bottom: 0; width: 15px; height: 22px; margin-left: -7.5px; border-radius: 2.5px; transform-origin: 50% 100%;
+  transform: translateX(var(--x)) rotate(var(--r)); background: repeating-linear-gradient(45deg, #a8392b 0 3px, #8f2e22 3px 6px); box-shadow: 0 0 0 1.5px #f6ead2, 0 1px 3px rgba(0,0,0,.5); }
+.hfan b { font-family: 'Oswald'; font-size: 14px; color: var(--plate-on); }
+.hfan.zero .backs { display: none; }
+.role-chip.hidden-role { background: rgba(255,255,255,.08); color: var(--plate-sub); font-weight: 400; }
+@media (max-width: 760px) { .hfan .backs { height: 17px; width: calc(14px + var(--n, 1) * 4px); } .hfan .backs i { width: 10px; height: 15px; margin-left: -5px; transform: translateX(calc(var(--x) * .55)) rotate(var(--r)); } .hfan b { font-size: 11px; } .role-chip.hidden-role { display: none; } }
+.seat .stats { flex-wrap: nowrap; white-space: nowrap; }
+.prompt .store-row { gap: 6px; } .prompt .store-row .pcard { --w: 60px; } .prompt .store-row .pcard .ktag { display: none; }
+.prompt .store-row.peek .pcard { --w: 40px; grid-template-rows: 1fr; padding: 2px; } .prompt .store-row.peek .pcard .ctop, .prompt .store-row.peek .pcard .cname { display: none; }
+.prompt:has(.store-row:not(.peek)) { position: relative; z-index: 5; }
+@media (max-width: 760px) { .prompt .store-row .pcard { --w: 46px; } .prompt .store-row.peek .pcard { --w: 28px; } }
