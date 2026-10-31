@@ -201,9 +201,10 @@ function render() {
       <div class="plate"><div class="pname">${esc(p.name)}</div><div class="pchar">${ch.name}</div>${hpDots(p)}${role}</div>
       <div class="equip ${x < 50 ? 'right' : 'left'}"></div>`;
     const eq = seat.querySelector('.equip');
-    for (const c of p.table) { const m = cardEl(c, 'xs'); eq.appendChild(m); }
+    for (const c of p.table) { const info = CARD_INFO[c.type]; const m = el('span', 'eqchip ' + info.kind, `${imgTag(c.type)}<b>${info.name}</b>`); m.title = `${info.name}: ${info.desc}`; eq.appendChild(m); }
     // chọn mục tiêu
     if (selectedCard && v.myOptions?.[selectedCard]?.targets?.includes(p.id)) { seat.classList.add('targetable'); seat.onclick = () => chooseTarget(p); }
+    else if (selectedCard && v.myOptions?.[selectedCard]?.targets) { seat.classList.add('out'); seat.onclick = () => toast(`${p.name} ngoài tầm (cách ${p.distance}, tầm của bạn ${me().gunRange})`); }
     else if (pr && pr.type === 'draw_option' && pr.player === myId && pr.character === 'jessejones' && p.alive && p.handCount) { seat.classList.add('targetable'); seat.onclick = () => send({ type: 'draw_from_player', target: p.id }); }
     else seat.onclick = () => showCharacter(p);
     table.appendChild(seat);
@@ -213,7 +214,7 @@ function render() {
   $('#deck').innerHTML = backHTML('sm') + `<div class="pile-count">${v.deckCount}</div>`;
   const dp = $('#discard'); dp.innerHTML = '';
   if (v.discardTop) dp.appendChild(cardEl(v.discardTop, 'sm')); else dp.innerHTML = '<div class="pile-empty">Chồng bỏ</div>';
-  renderPrompt();
+  renderPrompt(); renderFeed();
 
   // ---- Khu của tôi ----
   const m = me(); const ch = CHARACTERS[m.character];
@@ -274,6 +275,11 @@ function renderActions() {
   }
 }
 
+function renderFeed() {
+  const f = $('#feed'); if (!f) return;
+  const lines = view.log.filter(l => !/^— Lượt|^Ván mới/.test(l)).slice(-3);
+  f.innerHTML = lines.map((l, i) => `<div class="${i === lines.length - 1 ? 'new' : ''}">${esc(l)}</div>`).join('');
+}
 function renderPrompt() {
   const v = view, p = $('#prompt'); p.innerHTML = ''; p.className = 'prompt';
   const pr = v.prompt;

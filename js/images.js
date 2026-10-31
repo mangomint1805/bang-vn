@@ -8,10 +8,10 @@ export const IMG = {
   // Lá bài
   bang: { pos: '35% 50%' }, missed: { pos: '42% 55%' }, beer: { pos: '42% 55%' }, panic: { pos: '40% 55%' },
   catbalou: { pos: '30% 55%' }, stagecoach: { pos: '50% 35%' }, wellsfargo: { pos: '35% 45%' }, store: { pos: '35% 50%' },
-  saloon: { pos: '50% 55%' }, indians: { pos: '45% 50%' }, duel: { pos: '82% 50%' }, gatling: { pos: '50% 50%' },
-  dynamite: { pos: '30% 50%' }, jail: { pos: '62% 55%' }, barrel: { pos: '45% 50%' }, scope: { pos: '68% 50%' },
-  mustang: { pos: '55% 30%' }, volcanic: { pos: '50% 55%' }, schofield: { pos: '40% 50%' }, remington: { pos: '45% 55%' },
-  carabine: { pos: '55% 35%' }, winchester: { pos: '45% 50%' },
+  saloon: { pos: '50% 55%' }, indians: { pos: '45% 50%' }, duel: { pos: '55% 45%' }, gatling: { pos: '80% 72%' },
+  dynamite: { pos: '38% 50%' }, jail: { pos: '62% 55%' }, barrel: { pos: '45% 50%' }, scope: { pos: '68% 50%' },
+  mustang: { pos: '55% 30%' }, volcanic: { pos: '50% 40%' }, schofield: { pos: '50% 30%' }, remington: { pos: '58% 62%' },
+  carabine: { pos: '60% 35%' }, winchester: { pos: '50% 45%' },
   // Vai trò
   sheriff: { pos: '50% 30%' }, deputy: { pos: '50% 25%' }, outlaw: { pos: '45% 35%' }, renegade: { pos: '50% 45%' },
   // Nhân vật: [x%, y%] tiêu điểm khuôn mặt/người, zoom cho avatar

@@ -373,3 +373,21 @@ label { display: block; font-weight: 700; margin: 12px 0 4px; text-align: left; 
 .pcard .cname { font-size: calc(var(--w) * .118); letter-spacing: -.2px; }
 .pcard.sm .cname { font-size: max(9px, calc(var(--w) * .12)); }
 @media (max-width: 760px) { .me-ava { width: 40px; height: 40px; } .me-info { padding: 5px 10px 5px 5px; } #card-tip { display: none; } .bubble { font-size: 11px; } .bubble img { width: 18px; height: 24px; } }
+
+/* ===== Nâng cấp bàn: trang bị đọc được, diễn biến trên bàn, làm mờ ngoài tầm ===== */
+.equip { gap: 4px; }
+.eqchip { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px 2px 2px; border-radius: 7px; background: var(--plate-bg); color: var(--plate-on); font-family: 'Oswald'; font-size: 12px; white-space: nowrap; box-shadow: 0 3px 8px rgba(0,0,0,.3); border-left: 3px solid #4a5057; }
+.eqchip.blue { border-left-color: #3b7dbd; } .eqchip.brown { border-left-color: #b5651d; }
+.eqchip img { width: 20px; height: 26px; object-fit: cover; border-radius: 3px; display: block; }
+.equip.right { left: calc(50% + 50px); } .equip.left { right: calc(50% + 50px); align-items: flex-end; }
+.seat.out { opacity: .38; filter: grayscale(.8); transform: translate(-50%, -50%) scale(.95); }
+.seat.out:hover { opacity: .55; }
+.feed { display: flex; flex-direction: column; gap: 3px; width: 100%; max-width: 340px; align-items: center; }
+.feed div { font-size: 12px; padding: 3px 10px; border-radius: 10px; background: rgba(255,255,255,.45); color: var(--on); opacity: .75; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+[data-theme="night"] .feed div, [data-theme="saloon"] .feed div { background: rgba(0,0,0,.35); color: #f6ead2; }
+.feed div.new { opacity: 1; font-weight: 700; background: var(--surface); box-shadow: var(--shadow); animation: pop .3s; }
+@media (max-width: 760px) {
+  .eqchip { padding: 1px; font-size: 0; gap: 0; border-left-width: 2px; } .eqchip b { display: none; } .eqchip img { width: 16px; height: 21px; }
+  .equip.right { left: calc(50% + 30px); } .equip.left { right: calc(50% + 30px); }
+  .feed div { font-size: 10px; padding: 2px 6px; } .feed div:not(.new) { display: none; }
+}
