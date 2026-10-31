@@ -58,7 +58,7 @@ export function guideHTML() {
 
 <section id="g-setup"><h3>2. Chuẩn bị</h3><ul>
 <li>Mỗi người nhận 1 vai trò bí mật và 1 nhân vật. Cảnh sát trưởng lật vai trò lên cho mọi người thấy.</li>
-<li>Số máu = số máu của nhân vật (3 hoặc 4). <b>Cảnh sát trưởng được +1 máu.</b></li>
+<li>Máu được thể hiện bằng <b>viên đạn</b> 🔸: số đạn = số máu của nhân vật (3 hoặc 4). <b>Cảnh sát trưởng được +1 viên.</b> Viên đạn xám là máu đã mất.</li>
 <li>Mỗi người được chia số lá bằng số máu của mình.</li>
 <li><b>Cảnh sát trưởng đi trước</b>, sau đó lần lượt theo chiều kim đồng hồ.</li></ul></section>
 
@@ -109,6 +109,8 @@ export function guideHTML() {
 <li>Chủ phòng giữ tab mở suốt ván. Ai rớt mạng thì tải lại trang và vào cùng mã; sau 20 giây chưa về thì bot đánh thay.</li>
 <li>Bấm lá sáng trên tay để đánh. Lá cần mục tiêu thì bấm tiếp vào người sáng viền đỏ; người ngoài tầm sẽ mờ đi.</li>
 <li>Rê chuột lên lá bài để xem mô tả, bấm vào người chơi để xem nhân vật.</li>
+<li>Vai trò, mục tiêu và kỹ năng của bạn luôn hiện ở góc dưới bên trái. Ô vàng lớn là <b>tầm bắn</b> của bạn.</li>
+<li>Thấy hiệu ứng nhanh quá? Chỉnh <b>Tốc độ hiệu ứng</b> (Chậm / Vừa / Nhanh) ở trang chủ hoặc thanh trên.</li>
 <li>Bị bắn: bấm lá viền xanh để né, hoặc <b>Chịu đòn</b>.</li></ul>
 <p class="g-note">Luật theo sách luật chính thức BANG! của Emiliano Sciarra (dV Giochi). Tranh minh hoạ: Remington, Russell, Harnett, Peto và các họa sĩ khác (public domain).</p></section>
 </div>`;

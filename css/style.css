@@ -237,19 +237,19 @@ label { display: block; font-weight: 700; margin: 12px 0 4px; text-align: left; 
 #fx-layer { position: fixed; inset: 0; pointer-events: none; z-index: 45; overflow: hidden; }
 #fx-canvas { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 44; }
 .flyer { position: absolute; left: 0; top: 0; will-change: transform; }
-.shake { animation: shake .5s; }
+.shake { animation: shake calc(.5s * var(--fx, 1)); }
 @keyframes shake { 10%, 90% { translate: -2px 0; } 20%, 80% { translate: 4px 0; } 30%, 50%, 70% { translate: -7px 0; } 40%, 60% { translate: 7px 0; } }
 .screen-shake { animation: sshake .6s; }
 @keyframes sshake { 10% { translate: -8px 4px; } 20% { translate: 9px -6px; } 30% { translate: -10px 2px; } 40% { translate: 7px 6px; } 55% { translate: -5px -3px; } 70% { translate: 3px 2px; } }
-.flash-red .avatar, .me.flash-red { animation: flashred .6s; }
+.flash-red .avatar, .me.flash-red { animation: flashred calc(.6s * var(--fx, 1)); }
 @keyframes flashred { 30% { filter: drop-shadow(0 0 14px rgba(220,30,20,.95)) brightness(1.2) sepia(1) hue-rotate(-30deg) saturate(4); } }
 .flash-heal .avatar, .me.flash-heal { animation: flashheal .8s; }
 @keyframes flashheal { 30% { filter: drop-shadow(0 0 14px rgba(80,200,120,.95)) brightness(1.15); } }
 .white-flash { position: fixed; inset: 0; background: #fff3c4; z-index: 46; pointer-events: none; animation: wf .5s forwards; }
 @keyframes wf { from { opacity: .9; } to { opacity: 0; } }
-.float-text { position: fixed; transform: translate(-50%, -50%); font-family: 'Bevan', serif; font-size: 34px; text-shadow: 0 2px 0 #fff, 0 0 10px #fff; animation: floatup 1.1s forwards; }
+.float-text { position: fixed; transform: translate(-50%, -50%); font-family: 'Bevan', serif; font-size: 34px; text-shadow: 0 2px 0 #fff, 0 0 10px #fff; animation: floatup calc(1.1s * var(--fx, 1)) forwards; }
 @keyframes floatup { from { opacity: 0; transform: translate(-50%, -20%) scale(.6); } 20% { opacity: 1; transform: translate(-50%, -60%) scale(1.15); } to { opacity: 0; transform: translate(-50%, -160%) scale(1); } }
-.stamp { position: fixed; transform: translate(-50%, -50%) rotate(-14deg); font-family: 'Bevan', serif; font-size: 26px; color: var(--blue); border: 3px solid var(--blue); padding: 0 10px; border-radius: 6px; background: rgba(255,255,255,.85); animation: stamp .9s forwards; }
+.stamp { position: fixed; transform: translate(-50%, -50%) rotate(-14deg); font-family: 'Bevan', serif; font-size: 26px; color: var(--blue); border: 3px solid var(--blue); padding: 0 10px; border-radius: 6px; background: rgba(255,255,255,.85); animation: stamp calc(.9s * var(--fx, 1)) forwards; }
 @keyframes stamp { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(-14deg) scale(2.4); } 15% { opacity: 1; transform: translate(-50%, -50%) rotate(-14deg) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; } }
 .banner { position: fixed; left: 50%; top: 40%; transform: translate(-50%, -50%) rotate(-3deg); background: #2f2114; color: #fbf6ea; padding: 12px 40px; font-family: 'Bevan', serif; font-size: 34px; text-align: center; box-shadow: 0 0 0 4px var(--accent), var(--shadow-lg); animation: bannerin .35s cubic-bezier(.2,1.4,.4,1); white-space: nowrap; }
 .banner small { display: block; font-family: 'Oswald'; font-size: 15px; letter-spacing: 2px; opacity: .85; }
@@ -361,7 +361,7 @@ label { display: block; font-weight: 700; margin: 12px 0 4px; text-align: left; 
 #card-tip .tw { margin-top: 6px; font-size: 12px; color: #ff9d8f; }
 
 /* bong bóng thoại cạnh ghế */
-.bubble { position: fixed; transform: translate(-50%, -100%); z-index: 47; display: flex; align-items: center; gap: 6px; background: #fffaf0; color: #2b1d12; padding: 5px 10px 5px 5px; border-radius: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.35); font-family: 'Bevan', serif; font-size: 14px; white-space: nowrap; animation: bubble 1.9s forwards; pointer-events: none; }
+.bubble { position: fixed; transform: translate(-50%, -100%); z-index: 47; display: flex; align-items: center; gap: 6px; background: #fffaf0; color: #2b1d12; padding: 5px 10px 5px 5px; border-radius: 14px; box-shadow: 0 6px 18px rgba(0,0,0,.35); font-family: 'Bevan', serif; font-size: 14px; white-space: nowrap; animation: bubble calc(1.9s * var(--fx, 1)) forwards; pointer-events: none; }
 .bubble::after { content: ''; position: absolute; left: 50%; bottom: -7px; transform: translateX(-50%); border: 7px solid transparent; border-top-color: #fffaf0; border-bottom: 0; }
 .bubble img { width: 26px; height: 34px; object-fit: cover; border-radius: 4px; box-shadow: 0 0 0 1px rgba(0,0,0,.2); }
 @keyframes bubble { 0% { opacity: 0; transform: translate(-50%, -80%) scale(.6); } 12% { opacity: 1; transform: translate(-50%, -100%) scale(1.05); } 20% { transform: translate(-50%, -100%) scale(1); } 85% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -115%); } }
@@ -437,3 +437,74 @@ label { display: block; font-weight: 700; margin: 12px 0 4px; text-align: left; 
   .g-grid2, .g-cards, .g-chars { grid-template-columns: 1fr; } .g-flex { flex-direction: column; } .g-svg { width: 100%; max-width: 320px; }
   .g-card .pcard, .g-role .pcard { --w: 74px !important; } .g-toc { padding: 8px 12px; } .g-table { font-size: 12px; }
 }
+
+/* ================= DỄ NHÌN CHO NGƯỜI MỚI ================= */
+.pick-lbl { font-family: 'Oswald'; font-size: 13px; align-self: center; color: var(--on2); margin-right: 2px; }
+/* máu = viên đạn */
+.hpbar { gap: 2px; align-items: flex-end; }
+.hpbar i.bul { width: 9px; height: 22px; background: none !important; box-shadow: none !important; display: inline-block; }
+.hpbar i.bul svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.bul .tip { fill: #8a8a8a; } .bul .case { fill: #6e6e6e; } .bul .rim { fill: #5a5a5a; } .bul .shine { fill: rgba(255,255,255,.15); }
+.bul { opacity: .35; }
+.bul.on { opacity: 1; filter: drop-shadow(0 1px 1px rgba(0,0,0,.5)); }
+.bul.on .tip { fill: #c47a3a; } .bul.on .case { fill: #e3b54a; } .bul.on .rim { fill: #b98a2a; } .bul.on .shine { fill: rgba(255,255,255,.55); }
+.me-info .hpbar i.bul { width: 12px; height: 30px; }
+/* khoảng cách to, có chữ */
+.dist { width: 38px; height: 38px; top: -8px; right: -14px; flex-direction: column; line-height: 1; }
+.dist b { font-size: 18px; } .dist small { font-size: 8px; font-family: 'Nunito'; font-weight: 800; letter-spacing: .3px; text-transform: uppercase; }
+/* chỉ số trong bảng tên */
+.seat .stats { display: flex; gap: 6px; justify-content: center; margin-top: 3px; }
+.seat .stats span { font-family: 'Oswald'; font-size: 13px; padding: 1px 7px; border-radius: 8px; background: rgba(255,255,255,.1); }
+.seat .stats .rngbig { background: rgba(var(--glow),.25); color: #f6d77a; font-weight: 700; }
+/* trang bị to hơn */
+.eqchip { font-size: 13px; padding: 3px 9px 3px 3px; }
+.eqchip img { width: 24px; height: 31px; }
+/* khu của tôi: vai trò + kỹ năng luôn hiện */
+.me-info { display: block; width: 470px; max-width: 40vw; padding: 9px 12px; border-radius: 16px; cursor: pointer; }
+.me-info:hover { box-shadow: 0 0 0 2px rgba(var(--glow),.6), 0 8px 20px rgba(0,0,0,.35); }
+.me-top { display: flex; gap: 10px; align-items: center; }
+.me-id { flex: 1; min-width: 0; }
+.me-range { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 58px; height: 58px; border-radius: 12px; background: var(--gold-grad); color: #2a1a0a; box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 3px 8px rgba(0,0,0,.3); flex: 0 0 auto; }
+.me-range b { font-family: 'Oswald'; font-size: 28px; line-height: 1; } .me-range small { font-size: 10px; font-weight: 800; text-transform: uppercase; }
+.me-role, .me-skill { margin-top: 8px; font-size: 13px; line-height: 1.35; padding: 6px 9px; border-radius: 10px; background: rgba(255,255,255,.07); }
+.me-role b { font-family: 'Oswald'; font-size: 16px; margin-right: 6px; color: #f6d77a; }
+.me-role .goal { display: block; color: var(--plate-sub); }
+.me-role.sheriff { box-shadow: inset 3px 0 0 #e3b54a; } .me-role.deputy { box-shadow: inset 3px 0 0 #6aa8ea; } .me-role.outlaw { box-shadow: inset 3px 0 0 #e0524a; } .me-role.renegade { box-shadow: inset 3px 0 0 #9b6bd6; }
+.me-skill { box-shadow: inset 3px 0 0 rgba(255,255,255,.3); }
+.lbl { display: block; font-family: 'Oswald'; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--plate-sub); opacity: .85; }
+.me-right .small-label { font-size: 13px; font-family: 'Oswald'; color: var(--on); }
+/* gợi ý */
+.prompt.hint { background: var(--surface); box-shadow: var(--shadow); font-style: normal; color: var(--on); padding: 8px 14px; font-size: 14px; line-height: 1.45; }
+.prompt .inrange { font-size: 13px; color: var(--on2); }
+/* màn giới thiệu vai trò */
+.intro { text-align: center; }
+.intro-kicker { font-family: 'Oswald'; letter-spacing: 2px; text-transform: uppercase; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.intro .cards { gap: 16px; }
+.intro .pcard.lg { --w: 170px; }
+.intro-txt { text-align: left; max-width: 440px; margin: 8px auto 4px; font-size: 15px; line-height: 1.45; }
+.intro-txt .lbl { color: var(--muted); }
+.intro-txt .big { font-family: 'Bevan', serif; font-weight: 400; font-size: 24px; color: var(--red); }
+.intro-txt .goal { padding: 8px 12px; border-radius: 10px; background: var(--surface2); font-weight: 700; }
+.intro-txt .skill { padding: 8px 12px; border-radius: 10px; background: var(--surface2); }
+.intro-txt .tip { font-size: 13px; color: var(--muted); }
+.intro .row { display: flex; gap: 10px; justify-content: center; margin-top: 12px; }
+#speed-select { width: auto; padding: 3px 6px; font-size: 13px; border-width: 1px; background: rgba(255,255,255,.1); color: #f6ead2; border-color: rgba(246,234,210,.3); }
+#speed-select option { color: #222; }
+@media (max-width: 760px) {
+  .hpbar i.bul { width: 7px; height: 16px; } .me-info .hpbar i.bul { width: 9px; height: 22px; }
+  .dist { width: 30px; height: 30px; right: -12px; } .dist b { font-size: 14px; } .dist small { font-size: 6px; }
+  .seat .stats span { font-size: 10px; padding: 0 4px; }
+  .eqchip img { width: 20px; height: 26px; }
+  .me-info { max-width: none; padding: 7px 9px; } .me-range { width: 44px; height: 44px; } .me-range b { font-size: 20px; }
+  .me-role, .me-skill { margin-top: 5px; font-size: 11px; padding: 4px 7px; } .me-role b { font-size: 13px; }
+  .me-role .goal { display: none; }
+  .intro .pcard.lg { --w: 120px; } .intro-txt { font-size: 13px; }
+  #speed-select { max-width: 48px; padding: 3px 2px; }
+}
+
+.me-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 7px; }
+.me-cols .me-role, .me-cols .me-skill { margin-top: 0; font-size: 12.5px; }
+.hand { min-height: 160px; padding-top: 26px; }
+@media (max-width: 760px) { .me-info { width: auto; max-width: none; } .me-cols { gap: 5px; margin-top: 5px; } .me-cols .me-role, .me-cols .me-skill { font-size: 11px; } .hand { min-height: 120px; } }
+
+@media (max-width: 760px) { .hide-m { display: none; } .me-range small { font-size: 7px; } }

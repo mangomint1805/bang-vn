@@ -1,4 +1,13 @@
 // Hiệu ứng: bài bay, rung, số sát thương, âm thanh tổng hợp (không cần file âm thanh)
+// Tốc độ hiệu ứng: hệ số nhân thời gian (lớn hơn = chậm hơn)
+export const SPEEDS = { slow: { k: 2.2, name: 'Chậm' }, normal: { k: 1.6, name: 'Vừa' }, fast: { k: 1, name: 'Nhanh' } };
+let speedKey = 'normal';
+try { const v = localStorage.getItem('bangvn-speed'); if (SPEEDS[v]) speedKey = v; } catch (e) {}
+export function S() { return SPEEDS[speedKey].k; }
+export function getSpeed() { return speedKey; }
+export function setSpeed(k) { if (!SPEEDS[k]) return; speedKey = k; try { localStorage.setItem('bangvn-speed', k); } catch (e) {} document.documentElement.style.setProperty('--fx', S()); }
+document.documentElement.style.setProperty('--fx', S());
+
 let muted = false;
 try { muted = localStorage.getItem('bangvn-mute') === '1'; } catch (e) {}
 export function isMuted() { return muted; }
@@ -41,6 +50,7 @@ function center(el) { const r = el.getBoundingClientRect(); return { x: r.left +
 // Bay một phần tử (HTML) từ A đến B
 export function fly(html, fromEl, toEl, { delay = 0, duration = 520, scaleTo = 1, rotate = 0, onEnd } = {}) {
   if (!fromEl || !toEl) return;
+  duration *= S(); delay *= S();
   const a = center(fromEl), b = center(toEl);
   const n = document.createElement('div'); n.className = 'flyer'; n.innerHTML = html;
   layer().appendChild(n);
@@ -56,17 +66,23 @@ export function fly(html, fromEl, toEl, { delay = 0, duration = 520, scaleTo = 1
   }, delay);
 }
 
-export function shake(el) { if (!el) return; el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 600); }
-export function flash(el, cls = 'flash-red') { if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); setTimeout(() => el.classList.remove(cls), 700); }
+export function shake(el) { if (!el) return; el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); setTimeout(() => el.classList.remove('shake'), 600 * S()); }
+export function flash(el, cls = 'flash-red') { if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); setTimeout(() => el.classList.remove(cls), 700 * S()); }
 export function floatText(el, text, color = '#c0392b') {
   if (!el) return; const c = center(el);
   const n = document.createElement('div'); n.className = 'float-text'; n.textContent = text; n.style.color = color;
   n.style.left = c.x + 'px'; n.style.top = (c.y - 10) + 'px';
-  layer().appendChild(n); setTimeout(() => n.remove(), 1200);
+  layer().appendChild(n); setTimeout(() => n.remove(), 1200 * S());
 }
-export function banner(text, sub = '') {
-  const n = document.createElement('div'); n.className = 'banner'; n.innerHTML = `<div>${text}</div>${sub ? `<small>${sub}</small>` : ''}`;
-  layer().appendChild(n); setTimeout(() => n.classList.add('out'), 1400); setTimeout(() => n.remove(), 1900);
+// Biểu ngữ xếp hàng lần lượt, không chồng lên nhau
+const bannerQ = []; let bannerBusy = false;
+export function banner(text, sub = '') { bannerQ.push([text, sub]); if (bannerQ.length > 3) bannerQ.splice(0, bannerQ.length - 3); if (!bannerBusy) nextBanner(); }
+function nextBanner() {
+  const item = bannerQ.shift(); if (!item) { bannerBusy = false; return; } bannerBusy = true;
+  const n = document.createElement('div'); n.className = 'banner'; n.innerHTML = `<div>${item[0]}</div>${item[1] ? `<small>${item[1]}</small>` : ''}`;
+  layer().appendChild(n);
+  const show = 1300 * S();
+  setTimeout(() => n.classList.add('out'), show); setTimeout(() => { n.remove(); nextBanner(); }, show + 450);
 }
 
 // ================= Hạt hiệu ứng trên canvas =================
@@ -116,19 +132,19 @@ function burst(x, y, n, opt) { for (let i = 0; i < n; i++) { const a = R(0, 6.28
 
 // Phát bắn: chớp nòng + vệt đạn + tia lửa khi trúng
 export function shoot(fromEl, toEl, { delay = 0, onHit } = {}) {
-  const a = pt(fromEl), b = pt(toEl); if (!a || !b) return;
+  const a = pt(fromEl), b = pt(toEl); if (!a || !b) return; delay *= S();
   setTimeout(() => {
     fcanvas();
     fparts.push({ type: 'flash', x: a.x, y: a.y, vx: 0, vy: 0, r: 26, life: 10, t: 0 });
     burst(a.x, a.y, 8, { type: 'smoke', c: '200,190,170', smin: .3, smax: 1.2, rmin: 6, rmax: 12, lmin: 30, lmax: 50 });
     const dist = Math.hypot(b.x - a.x, b.y - a.y);
-    fparts.push({ type: 'tracer', x: a.x, y: a.y, tx: b.x + R(-8, 8), ty: b.y + R(-8, 8), speed: Math.max(6, dist / 55), life: Math.max(6, dist / 55) + 8, t: 0,
+    fparts.push({ type: 'tracer', x: a.x, y: a.y, tx: b.x + R(-8, 8), ty: b.y + R(-8, 8), speed: Math.max(8, dist / 55) * S(), life: Math.max(8, dist / 55) * S() + 10, t: 0,
       onHit: () => { burst(b.x, b.y, 14, { c: '255,210,90', smin: 1.5, smax: 5 }); onHit && onHit(); } });
   }, delay);
 }
 export function arrows(fromEl, toEl, { delay = 0, onHit } = {}) {
-  const a = pt(fromEl), b = pt(toEl); if (!a || !b) return;
-  setTimeout(() => { fcanvas(); fparts.push({ type: 'arrow', x: a.x, y: a.y, tx: b.x, ty: b.y, arc: 60, speed: 32, life: 40, t: 0, onHit: () => { burst(b.x, b.y, 6, { c: '120,80,40', smin: 1, smax: 3 }); onHit && onHit(); } }); }, delay);
+  const a = pt(fromEl), b = pt(toEl); if (!a || !b) return; delay *= S();
+  setTimeout(() => { fcanvas(); fparts.push({ type: 'arrow', x: a.x, y: a.y, tx: b.x, ty: b.y, arc: 60, speed: 32 * S(), life: 40 * S(), t: 0, onHit: () => { burst(b.x, b.y, 6, { c: '120,80,40', smin: 1, smax: 3 }); onHit && onHit(); } }); }, delay);
 }
 export function explode(el) {
   const a = pt(el); if (!a) return; fcanvas();
@@ -149,6 +165,6 @@ export function confetti() {
 export function stamp(el, text) {
   const a = pt(el); if (!a) return;
   const n = document.createElement('div'); n.className = 'stamp'; n.textContent = text; n.style.left = a.x + 'px'; n.style.top = a.y + 'px';
-  layer().appendChild(n); setTimeout(() => n.remove(), 950);
+  layer().appendChild(n); setTimeout(() => n.remove(), 950 * S());
 }
 export function screenShake() { const s = document.querySelector('#screen-game'); if (!s) return; s.classList.remove('screen-shake'); void s.offsetWidth; s.classList.add('screen-shake'); setTimeout(() => s.classList.remove('screen-shake'), 650); }

@@ -2,7 +2,7 @@
 import { CARD_INFO, CHARACTERS, ROLES, SUIT_SYMBOL, rankLabel, cardLabel, suitify } from './cards.js';
 import { Host, Client } from './net.js';
 import { imgTag, avatarTag } from './images.js';
-import { sfx, fly, shake, flash, floatText, banner, toggleMute, isMuted, shoot, arrows, explode, sparkle, confetti, stamp, screenShake } from './fx.js';
+import { S, SPEEDS, getSpeed, setSpeed, sfx, fly, shake, flash, floatText, banner, toggleMute, isMuted, shoot, arrows, explode, sparkle, confetti, stamp, screenShake } from './fx.js';
 import { THEMES, getTheme, setTheme, onThemeChange } from './themes.js';
 import { openGuide } from './guide.js';
 import { musicSetTheme, musicToggle, musicIsOn, musicVolume, musicResumeIfOn } from './music.js';
@@ -72,6 +72,7 @@ $('#btn-leave').onclick = () => { net?.destroy(); location.href = location.pathn
 $('#btn-log-toggle').onclick = () => $('#log').classList.toggle('hidden');
 $('#btn-mute').textContent = isMuted() ? '🔇' : '🔊';
 $('#btn-mute').onclick = () => { $('#btn-mute').textContent = toggleMute() ? '🔇' : '🔊'; };
+document.body.appendChild($('#modal')); // nằm trên lớp hiệu ứng
 $('#modal').onclick = e => { if (e.target.id === 'modal') closeModal(); };
 
 // ---------- Chủ đề + nhạc ----------
@@ -83,6 +84,14 @@ function renderThemeUI() {
 }
 function renderMusicUI() { const o = musicIsOn(); $('#btn-music-home').textContent = `🎵 Nhạc nền: ${o ? 'bật' : 'tắt'}`; $('#btn-music-home').classList.toggle('on', o); $('#btn-music').style.opacity = o ? 1 : .45; }
 $('#theme-select').onchange = e => setTheme(e.target.value);
+function renderSpeedUI() {
+  const k = getSpeed();
+  $('#speed-pick').innerHTML = '<span class="pick-lbl">Tốc độ hiệu ứng:</span>' + Object.entries(SPEEDS).map(([key, v]) => `<button data-s="${key}" class="${key === k ? 'on' : ''}">${v.name}</button>`).join('');
+  $('#speed-pick').querySelectorAll('button').forEach(b => b.onclick = () => { setSpeed(b.dataset.s); renderSpeedUI(); });
+  $('#speed-select').innerHTML = Object.entries(SPEEDS).map(([key, v]) => `<option value="${key}"${key === k ? ' selected' : ''}>⏱ ${v.name}</option>`).join('');
+}
+$('#speed-select').onchange = e => { setSpeed(e.target.value); renderSpeedUI(); };
+renderSpeedUI();
 onThemeChange(t => { renderThemeUI(); musicSetTheme(t); });
 $('#btn-music-home').onclick = $('#btn-music').onclick = () => { musicToggle(); renderMusicUI(); };
 $('#music-vol').value = musicVolume(); $('#music-vol').oninput = e => musicVolume(+e.target.value);
@@ -150,9 +159,27 @@ const SEATS_P = { // màn hình dọc (điện thoại)
 };
 function seatEl(pid) { return document.querySelector(`.seat[data-pid="${pid}"]`); }
 
+const BULLET = '<svg viewBox="0 0 10 26"><path class="tip" d="M2 10 Q2 2.5 5 1 Q8 2.5 8 10 Z"/><rect class="case" x="2" y="10" width="6" height="12" rx=".6"/><rect class="rim" x="1.4" y="21.5" width="7.2" height="3.2" rx=".8"/><rect class="shine" x="3" y="11" width="1.1" height="10" rx=".5"/></svg>';
+function sheriffName() { const s = view.players.find(p => p.role === 'sheriff'); return s ? (s.id === myId ? 'bạn' : esc(s.name)) : 'Cảnh sát trưởng'; }
+function roleGoal(role) {
+  return ({ sheriff: 'Hạ hết Tội phạm và Kẻ hai mặt. Cẩn thận đừng bắn nhầm Phó cảnh sát.',
+    deputy: `Bảo vệ Cảnh sát trưởng (${sheriffName()}) và cùng hạ Tội phạm, Kẻ hai mặt. Giữ bí mật vai trò.`,
+    outlaw: `Hạ Cảnh sát trưởng (${sheriffName()}). Các Tội phạm khác là đồng đội nhưng bạn không biết là ai.`,
+    renegade: `Là người sống sót cuối cùng: giúp diệt Tội phạm trước, cuối cùng một mình đấu Cảnh sát trưởng (${sheriffName()}).` })[role];
+}
+function showIntro() {
+  const m = me(); if (!m || !m.role) return; const R = ROLES[m.role], ch = CHARACTERS[m.character];
+  openModal(`<div class="intro"><div class="intro-kicker">Ván mới · bí mật của bạn</div>
+    <div class="cards">${roleCardHTML(m.role, 'lg')}${charCardHTML(m.character, 'lg')}</div>
+    <div class="intro-txt"><p><span class="lbl">Bạn là</span><b class="big">${R.icon} ${R.name}</b></p><p class="goal">${roleGoal(m.role)}</p>
+      <p><span class="lbl">Nhân vật</span><b>${ch.name}</b> · ${m.maxHp} viên đạn (máu)</p><p class="skill">${suitify(ch.desc)}</p>
+      <p class="tip">💡 Vai trò và kỹ năng luôn hiện ở góc dưới bên trái. Bấm vào đó để xem lại màn này.</p></div>
+    <div class="row"><button class="btn ghost" id="intro-guide">📖 Xem luật</button><button class="btn primary" id="intro-ok">Đã hiểu, vào ván!</button></div></div>`);
+  $('#intro-ok').onclick = closeModal; $('#intro-guide').onclick = () => { closeModal(); openGuide(); };
+}
 function hpDots(p) {
-  let s = ''; for (let i = 0; i < p.maxHp; i++) s += `<i class="${i < p.hp ? 'on' : ''}"></i>`;
-  return `<div class="hpbar">${s}</div>`;
+  let s = ''; for (let i = 0; i < p.maxHp; i++) s += `<i class="bul${i < p.hp ? ' on' : ''}">${BULLET}</i>`;
+  return `<div class="hpbar" title="Máu: ${p.hp}/${p.maxHp}">${s}</div>`;
 }
 
 // ---------- Khung mô tả lá bài ----------
@@ -173,7 +200,7 @@ function bubbleAt(pid, card) {
   const r = anchor.getBoundingClientRect(); const info = CARD_INFO[card.type];
   const b = el('div', 'bubble', `${imgTag(card.type)}<span>${info.name}</span>`);
   b.style.left = (r.left + r.width / 2) + 'px'; b.style.top = (r.top - 6) + 'px';
-  document.body.appendChild(b); setTimeout(() => b.remove(), 2000);
+  document.body.appendChild(b); setTimeout(() => b.remove(), 2000 * S());
 }
 
 function render() {
@@ -194,12 +221,13 @@ function render() {
     const [x, y] = L[k - 1] || [50, 10];
     const seat = el('div', 'seat' + (p.id === cur.id ? ' current' : '') + (!p.alive ? ' dead' : '') + (p.id === waitingId ? ' waiting' : ''));
     seat.dataset.pid = p.id;
-    seat.style.left = x + '%'; seat.style.top = y + '%';
+    const TH = table.clientHeight, top = Math.min(Math.max(y / 100 * TH, portrait ? 52 : 78), TH - (portrait ? 48 : 70));
+    seat.style.left = x + '%'; seat.style.top = top + 'px';
     const ch = CHARACTERS[p.character];
     const role = p.role ? `<div class="role-chip ${p.role}" title="${ROLES[p.role].desc}">${ROLES[p.role].icon} ${ROLES[p.role].name}</div>` : '';
     seat.innerHTML = `
-      <div class="avatar"><div class="face">${avatarTag(p.character)}</div>${p.distance != null ? `<div class="dist" title="Khoảng cách từ bạn">${p.distance}</div>` : ''}<div class="hcount" title="${p.handCount} lá trên tay">🂠${p.handCount}</div><div class="rng" title="Tầm bắn">🎯${p.gunRange}</div>${p.table.some(c => c.type === 'jail') ? '<div class="bars"></div>' : ''}${p.table.some(c => c.type === 'dynamite') ? '<div class="fuse">🧨</div>' : ''}${!p.alive ? '<div class="rip">☠</div>' : ''}</div>
-      <div class="plate"><div class="pname">${esc(p.name)}</div><div class="pchar">${ch.name}</div>${hpDots(p)}${role}</div>
+      <div class="avatar"><div class="face">${avatarTag(p.character)}</div>${p.distance != null ? `<div class="dist" title="Khoảng cách từ bạn tới ${esc(p.name)}"><b>${p.distance}</b><small>cách</small></div>` : ''}${p.table.some(c => c.type === 'jail') ? '<div class="bars"></div>' : ''}${p.table.some(c => c.type === 'dynamite') ? '<div class="fuse">🧨</div>' : ''}${!p.alive ? '<div class="rip">☠</div>' : ''}</div>
+      <div class="plate"><div class="pname">${esc(p.name)}</div><div class="pchar">${ch.name}</div>${hpDots(p)}<div class="stats"><span title="Số lá trên tay">🂠 ${p.handCount}</span><span class="rngbig" title="Tầm bắn của ${esc(p.name)}">🎯 ${p.gunRange}</span></div>${role}</div>
       <div class="equip ${x < 50 ? 'right' : 'left'}"></div>`;
     const eq = seat.querySelector('.equip');
     for (const c of p.table) { const info = CARD_INFO[c.type]; const m = el('span', 'eqchip ' + info.kind, `${imgTag(c.type)}<b>${info.name}</b>`); m.title = `${info.name}: ${info.desc}`; eq.appendChild(m); }
@@ -222,9 +250,14 @@ function render() {
   const mine = $('#me-area');
   mine.classList.toggle('current', cur.id === myId && v.phase === 'playing');
   mine.classList.toggle('dead', !m.alive);
-  $('#me-cards').innerHTML = charCardHTML(m.character, 'sm') + (m.role ? roleCardHTML(m.role, 'sm') : '');
-  $('#me-cards .char').onclick = () => showCharacter(m);
-  $('#me-info').innerHTML = `<div class="me-ava"><div class="face">${avatarTag(m.character)}</div></div><div><div class="pname">${esc(m.name)}</div>${hpDots(m)}<div class="muted">${ch.name} · tầm bắn ${m.gunRange}${m.bangs ? ' · đã bắn ' + m.bangs : ''}</div></div>`;
+  $('#me-cards').innerHTML = '';
+  const R = m.role ? ROLES[m.role] : null;
+  $('#me-info').innerHTML = `<div class="me-top"><div class="me-ava"><div class="face">${avatarTag(m.character)}</div></div>
+      <div class="me-id"><div class="pname">${esc(m.name)}</div>${hpDots(m)}</div>
+      <div class="me-range" title="Tầm bắn: bạn bắn được người có khoảng cách ≤ số này"><b>${m.gunRange}</b><small>tầm bắn</small></div></div>
+    <div class="me-cols">${R ? `<div class="me-role ${m.role}"><span class="lbl">Vai trò</span><b>${R.icon} ${R.name}</b><span class="goal">${roleGoal(m.role)}</span></div>` : ''}
+    <div class="me-skill"><span class="lbl">Kỹ năng · ${ch.name}</span>${suitify(ch.desc)}</div></div>`;
+  $('#me-info').onclick = () => showIntro();
   const mt = $('#me-table'); mt.innerHTML = '';
   for (const c of m.table) mt.appendChild(cardEl(c, 'sm'));
 
@@ -286,7 +319,14 @@ function renderPrompt() {
   const pr = v.prompt;
   if (!pr || v.phase === 'ended') {
     const cur = v.players[v.turn];
-    if (v.phase === 'playing') { p.classList.add('quiet'); p.textContent = cur.id === myId ? (selectedCard ? 'Chọn mục tiêu (người sáng viền đỏ)' : 'Tới lượt bạn – đánh bài hoặc kết thúc lượt') : `${cur.name} đang suy nghĩ…`; }
+    if (v.phase === 'playing') {
+      p.classList.add('quiet');
+      if (cur.id !== myId) { p.innerHTML = `⏳ Đang tới lượt <b>${esc(cur.name)}</b>…`; return; }
+      p.classList.add('hint');
+      if (selectedCard) { const c = me().hand.find(x => x.id === selectedCard); p.innerHTML = `👉 Bấm vào người <b>sáng viền đỏ</b> để dùng <b>${CARD_INFO[c.type].name}</b>. Người bị mờ là ở ngoài tầm.`; return; }
+      const inRange = v.players.filter(q => q.alive && q.id !== myId && q.distance != null && q.distance <= me().gunRange).map(q => esc(q.name));
+      p.innerHTML = `<b>Lượt của bạn!</b> Bấm các lá <b>sáng màu</b> để đánh, xong bấm <b>Kết thúc lượt</b>.<br><span class="inrange">🎯 Trong tầm bắn (≤ ${me().gunRange}): ${inRange.length ? inRange.join(', ') : 'chưa ai – cần súng tầm xa hơn'}</span>`;
+    }
     return;
   }
   const who = v.players.find(x => x.id === pr.player);
@@ -365,7 +405,8 @@ function anchorFor(pid) { return pid === myId ? $('#me-hand') : seatEl(pid); }
 function dealAnimation() {
   const order = seatOrder(); let d = 0;
   for (let r = 0; r < 4; r++) for (const p of order) { if (p.handCount > r) fly(backHTML('sm'), $('#deck'), anchorFor(p.id), { delay: d, duration: 380 }); d += 45; }
-  setTimeout(() => banner('BANG!', 'Cảnh sát trưởng đi trước'), 200);
+  setTimeout(() => banner('BANG!', 'Cảnh sát trưởng đi trước'), d * S());
+  setTimeout(showIntro, d * S() + 1300 * S() + 600);
 }
 function newLogLines(a, b) {
   const la = a.log, lb = b.log; if (!la.length) return lb;
@@ -385,17 +426,17 @@ function animateDiff(a, b) {
     let m;
     if ((m = line.match(/^(.+) 💥 bắn (.+)!$/))) {
       const s = pidByName(b, m[1]), t = pidByName(b, m[2]);
-      sfx.shot(); shoot(anchorFor(s), anchorFor(t)); hitDelay = 260;
+      sfx.shot(); shoot(anchorFor(s), anchorFor(t)); hitDelay = 300 * S();
     } else if ((m = line.match(/^(.+) quét Súng Gatling!$/))) {
       const s = pidByName(b, m[1]); sfx.shot();
       b.players.filter(p => p.alive && p.id !== s).forEach((p, i) => { shoot(anchorFor(s), anchorFor(p.id), { delay: i * 110 }); setTimeout(() => sfx.shot(), i * 110); });
-      hitDelay = 400; screenShake();
+      hitDelay = 450 * S(); screenShake();
     } else if ((m = line.match(/^(.+) gọi Thổ dân! tấn công tất cả\.$/))) {
       const s = pidByName(b, m[1]); banner('🏹 Thổ dân tấn công!');
       b.players.filter(p => p.alive && p.id !== s).forEach((p, i) => arrows(anchorFor(s), anchorFor(p.id), { delay: 200 + i * 140, onHit: () => sfx.card() }));
-      hitDelay = 700;
+      hitDelay = 800 * S();
     } else if ((m = line.match(/^(.+) (?:đánh .+ né đạn|né được nhờ Thùng rượu)\.$/))) {
-      const t = pidByName(b, m[1]); sfx.dodge(); setTimeout(() => stamp(anchorFor(t), 'HỤT!'), 280);
+      const t = pidByName(b, m[1]); sfx.dodge(); setTimeout(() => stamp(anchorFor(t), 'HỤT!'), 320 * S());
     } else if ((m = line.match(/^💥 Thuốc nổ nổ! (.+) mất 3 máu\.$/))) {
       const t = pidByName(b, m[1]); sfx.boom(); explode(anchorFor(t));
     } else if ((m = line.match(/thách (.+) Đấu súng!$/))) {

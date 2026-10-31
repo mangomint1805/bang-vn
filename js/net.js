@@ -1,6 +1,7 @@
 // Lớp mạng PeerJS: host giữ state + chạy engine, client chỉ gửi action.
 import { createGame, applyAction, viewFor, topPrompt, current, alivePlayers } from './engine.js';
 import { botAction } from './bot.js';
+import { S } from './fx.js';
 
 const PREFIX = 'bangvn-';
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -87,6 +88,7 @@ export class Host {
   start() {
     if (this.players.length < 4 || this.players.length > 7) { this.h.onError('Cần 4–7 người chơi.'); return; }
     this.state = createGame(this.players.map(p => ({ id: p.id, name: p.name, isBot: p.isBot })));
+    this.graceUntil = Date.now() + 9000 * S(); // cho mọi người đọc vai trò trước khi bot đánh
     this.pushLobby(); this.broadcast(); this.scheduleBots();
   }
   restart() { this.state = null; this.pushLobby(); for (const p of this.players) if (p.conn) p.conn.send({ t: 'state', view: null }); this.h.onState(null); }
@@ -118,7 +120,7 @@ export class Host {
     this.botTimer = setTimeout(() => {
       const a = botAction(this.state, pid);
       if (a) this.act(pid, a); else this.scheduleBots();
-    }, p.isBot ? 900 : 20000);
+    }, p.isBot ? Math.max(Math.round(1150 * S()), (this.graceUntil || 0) - Date.now()) : 20000);
   }
   destroy() { clearTimeout(this.botTimer); try { this.peer.destroy(); } catch (e) {} }
 }
