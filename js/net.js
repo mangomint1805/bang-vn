@@ -102,7 +102,7 @@ export class Host {
     if (!this.state) return;
     for (const p of this.players) {
       const view = viewFor(this.state, p.id);
-      if (p.id === 'host') this.h.onState(view);
+      if (p.id === 'host') this.h.onState(JSON.parse(JSON.stringify(view))); // bản sao: tránh dùng chung mảng với state
       else if (p.conn) try { p.conn.send({ t: 'state', view }); } catch (e) {}
     }
   }

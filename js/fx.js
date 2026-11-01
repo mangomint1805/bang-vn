@@ -168,3 +168,65 @@ export function stamp(el, text) {
   layer().appendChild(n); setTimeout(() => n.remove(), 950 * S());
 }
 export function screenShake() { const s = document.querySelector('#screen-game'); if (!s) return; s.classList.remove('screen-shake'); void s.offsetWidth; s.classList.add('screen-shake'); setTimeout(() => s.classList.remove('screen-shake'), 650); }
+
+// ================= Âm thanh riêng cho từng lá (tổng hợp, không dùng file) =================
+function at(ms, fn) { setTimeout(fn, ms); }
+function nz(dur, { type = 'lowpass', freq = 2000, q = 1, gain = .5, delay = 0, sweepTo = 0 } = {}) {
+  const a = ctx(); if (!a) return; const t = a.currentTime + delay / 1000;
+  const buf = a.createBuffer(1, Math.max(1, Math.floor(a.sampleRate * dur)), a.sampleRate);
+  const d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 1.6);
+  const src = a.createBufferSource(); src.buffer = buf;
+  const f = a.createBiquadFilter(); f.type = type; f.frequency.setValueAtTime(freq, t); f.Q.value = q; if (sweepTo) f.frequency.exponentialRampToValueAtTime(sweepTo, t + dur);
+  const g = a.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  src.connect(f); f.connect(g); g.connect(a.destination); src.start(t);
+}
+function tn(freq, dur, { type = 'sine', gain = .15, slide = 0, delay = 0, attack = .005, vib = 0, vibRate = 6 } = {}) {
+  const a = ctx(); if (!a) return; const t = a.currentTime + delay / 1000;
+  const o = a.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), t + dur);
+  if (vib) { const l = a.createOscillator(); l.frequency.value = vibRate; const lg = a.createGain(); lg.gain.value = vib; l.connect(lg); lg.connect(o.frequency); l.start(t); l.stop(t + dur); }
+  const g = a.createGain(); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + attack); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + dur + .02);
+}
+const SND = {
+  // --- tiếng súng theo loại ---
+  colt() { nz(.32, { freq: 2400, gain: .9 }); tn(140, .2, { type: 'triangle', gain: .3, slide: -90 }); nz(.7, { freq: 500, gain: .2, delay: 60 }); },
+  schofield() { SND.colt(); },
+  remington() { nz(.34, { freq: 2000, gain: 1 }); tn(110, .25, { type: 'triangle', gain: .35, slide: -70 }); nz(.8, { freq: 450, gain: .22, delay: 70 }); },
+  volcanic() { [0, 95, 190].forEach(d => { nz(.13, { freq: 3200, gain: .65, delay: d }); tn(220, .08, { type: 'triangle', gain: .2, slide: -120, delay: d }); }); },
+  carabine() { nz(.22, { freq: 5500, gain: 1 }); tn(90, .3, { type: 'triangle', gain: .3, slide: -50 }); nz(1, { freq: 600, gain: .25, delay: 90 }); },
+  winchester() { SND.carabine(); [380, 470].forEach(d => nz(.03, { type: 'bandpass', freq: 3000, q: 4, gain: .5, delay: d })); },
+  // --- trang bị súng: xoay ổ đạn + lên cò ---
+  gunEquip() { for (let i = 0; i < 6; i++) nz(.025, { type: 'bandpass', freq: 4200, q: 5, gain: .35, delay: i * 45 }); nz(.05, { type: 'bandpass', freq: 2200, q: 3, gain: .7, delay: 340 }); },
+  missed() { nz(.35, { type: 'bandpass', freq: 700, q: 2, gain: .35, sweepTo: 3500 }); tn(3200, .35, { gain: .06, slide: -2200, delay: 120 }); },
+  barrel() { [0, 140].forEach(d => { tn(170, .16, { gain: .5, slide: -40, delay: d }); nz(.06, { freq: 900, gain: .35, delay: d }); }); },
+  beer() { tn(2600, .5, { gain: .14 }); tn(3950, .35, { gain: .07 }); [260, 470].forEach(d => tn(190, .12, { type: 'triangle', gain: .25, slide: -70, delay: d })); for (let i = 0; i < 6; i++) tn(600 + Math.random() * 700, .05, { gain: .05, delay: 650 + i * 55 }); },
+  saloon() { [261, 330, 392, 523].forEach((f, i) => { tn(f, 1, { type: 'triangle', gain: .1, delay: i * 25 }); tn(f * 1.006, 1, { type: 'square', gain: .02, delay: i * 25 }); }); [500, 650].forEach(d => tn(2700, .4, { gain: .1, delay: d })); },
+  stagecoach() { nz(.05, { type: 'highpass', freq: 5000, gain: .9 }); for (let i = 0; i < 9; i++) { const d = 120 + Math.floor(i / 3) * 300 + (i % 3) * 80; nz(.07, { freq: 450, gain: .55, delay: d }); } },
+  wellsfargo() { for (let i = 0; i < 12; i++) tn(3000 + Math.random() * 3000, .12, { gain: .07, delay: i * 45 + Math.random() * 30 }); },
+  store() { [0, 260].forEach(d => { tn(1760, 1, { gain: .12, delay: d }); tn(2640, .7, { gain: .06, delay: d }); }); },
+  panic() { nz(.25, { type: 'bandpass', freq: 600, q: 2, gain: .4, sweepTo: 2500 }); tn(700, .18, { type: 'square', gain: .05, slide: 400, delay: 80 }); nz(.08, { freq: 500, gain: .5, delay: 260 }); },
+  catbalou() { nz(.04, { type: 'highpass', freq: 6000, gain: 1 }); nz(.12, { freq: 400, gain: .5, delay: 220 }); tn(120, .2, { gain: .2, slide: -40, delay: 220 }); },
+  indians() { [0, 260, 520, 690].forEach((d, i) => tn(i === 3 ? 75 : 95, .35, { gain: i === 3 ? .55 : .4, slide: -30, delay: d })); [850, 1000, 1150].forEach(d => nz(.3, { type: 'bandpass', freq: 1200, q: 3, gain: .2, sweepTo: 3000, delay: d })); },
+  duel() { tn(392, 2.2, { gain: .18 }); tn(940, 1.6, { gain: .07 }); tn(1570, 1, { gain: .04 }); },
+  gatling() { tn(800, .05, { type: 'square', gain: .05 }); for (let i = 0; i < 14; i++) { nz(.09, { freq: 2600, gain: .5, delay: 60 + i * 62 }); tn(200, .05, { type: 'triangle', gain: .12, slide: -100, delay: 60 + i * 62 }); } },
+  dynamite() { nz(1.4, { type: 'highpass', freq: 4500, gain: .12 }); for (let i = 0; i < 10; i++) nz(.02, { type: 'bandpass', freq: 3000 + Math.random() * 3000, q: 6, gain: .25, delay: Math.random() * 1300 }); },
+  jail() { [310, 763, 1247, 1890].forEach((f, i) => tn(f, 1.2 - i * .2, { type: i % 2 ? 'sine' : 'triangle', gain: .14 })); nz(.08, { freq: 1500, gain: .5 }); for (let i = 0; i < 4; i++) tn(4000 + Math.random() * 2000, .08, { gain: .04, delay: 600 + i * 60 }); },
+  scope() { nz(.03, { type: 'bandpass', freq: 3500, q: 5, gain: .5 }); tn(300, .45, { type: 'sawtooth', gain: .03, slide: 700, delay: 60 }); nz(.03, { type: 'bandpass', freq: 3500, q: 5, gain: .5, delay: 520 }); },
+  mustang() {
+    for (let i = 0; i < 4; i++) nz(.05, { type: 'bandpass', freq: 1100, q: 2, gain: .6, delay: i * 150 + (i % 2) * 40 });
+    tn(950, .9, { type: 'sawtooth', gain: .06, slide: -450, delay: 650, vib: 70, vibRate: 11, attack: .05 });
+    tn(1900, .9, { type: 'sine', gain: .03, slide: -900, delay: 650, vib: 140, vibRate: 11, attack: .05 });
+  },
+  jailEscape() { tn(1200, .2, { gain: .08 }); tn(1600, .3, { gain: .08, delay: 120 }); },
+};
+const GUNS = ['volcanic', 'schofield', 'remington', 'carabine', 'winchester'];
+// Âm thanh khi một lá được đánh / trang bị
+export function cardSfx(type) {
+  if (muted) return;
+  if (GUNS.includes(type)) return SND.gunEquip();
+  if (type === 'bang') return; // tiếng súng phát theo súng của người bắn
+  SND[type] && SND[type]();
+}
+// Tiếng súng theo khẩu súng người bắn đang cầm
+export function gunSfx(gun) { if (muted) return; (SND[gun] || SND.colt)(); }

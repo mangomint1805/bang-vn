@@ -2,7 +2,7 @@
 import { CARD_INFO, CHARACTERS, ROLES, SUIT_SYMBOL, rankLabel, cardLabel, suitify } from './cards.js';
 import { Host, Client } from './net.js';
 import { imgTag, avatarTag } from './images.js';
-import { S, SPEEDS, getSpeed, setSpeed, sfx, fly, shake, flash, floatText, banner, toggleMute, isMuted, shoot, arrows, explode, sparkle, confetti, stamp, screenShake } from './fx.js';
+import { S, SPEEDS, getSpeed, setSpeed, sfx, cardSfx, gunSfx, fly, shake, flash, floatText, banner, toggleMute, isMuted, shoot, arrows, explode, sparkle, confetti, stamp, screenShake } from './fx.js';
 import { THEMES, getTheme, setTheme, onThemeChange } from './themes.js';
 import { openGuide } from './guide.js';
 import { musicSetTheme, musicToggle, musicIsOn, musicVolume, musicResumeIfOn } from './music.js';
@@ -33,7 +33,7 @@ function getName() {
 }
 const handlers = {
   onLobby(players, code, started) { lobby = players; renderLobby(code); if (!started && !view) show('screen-lobby'); },
-  onState(v) { prevView = view; view = v; if (!v) { prevView = null; show('screen-lobby'); return; } const first = !$('#screen-game').classList.contains('active'); show('screen-game'); render(); if (first) dealAnimation(); else animateDiff(prevView, view); },
+  onState(v) { prevView = view; view = v; markFresh(prevView, v); if (!v) { prevView = null; show('screen-lobby'); return; } const first = !$('#screen-game').classList.contains('active'); show('screen-game'); render(); if (first) dealAnimation(); else animateDiff(prevView, view); },
   onError(msg) { toast(msg); },
   onJoined(id) { myId = id; },
   onDisconnect() { toast('Mất kết nối với chủ phòng. Tải lại trang để vào lại.'); },
@@ -49,6 +49,7 @@ $('#btn-offline').onclick = () => {
   const n = getName(); if (!n) return;
   isHost = true; myId = 'host';
   net = new Host(n, handlers, true);
+  if (location.hash === '#debug') window.__net = net;
   for (let i = 0; i < 3; i++) net.addBot();
   $('#lobby-host-actions').classList.remove('hidden'); $('#btn-copy').classList.add('hidden');
   show('screen-lobby');
@@ -112,7 +113,7 @@ function renderLobby(code) {
 }
 
 // ---------- Gửi action ----------
-function send(a) { if (isHost) net.act('host', a); else net.act(a); selectedCard = null; }
+function send(a) { selectedCard = null; sidMode = false; if (isHost) net.act('host', a); else net.act(a); }
 
 // ---------- Lá bài ----------
 const KIND_TAG = { brown: 'Dùng ngay', blue: 'Trang bị', gun: 'Súng' };
@@ -122,8 +123,12 @@ export function cardEl(c, size = '') {
   const d = el('div', `pcard ${info.kind} ${size}`);
   d.innerHTML = `<div class="ctop"><span class="idx${red ? ' red' : ''}">${rankLabel(c.rank)}${SUIT_SYMBOL[c.suit]}</span><span class="ktag">${info.kind === 'gun' ? 'Tầm ' + info.range : KIND_TAG[info.kind]}</span></div>
     <div class="art">${imgTag(c.type)}</div>
-    <div class="cname">${info.name}</div>`;
+    <div class="cname">${info.name}</div><div class="cshort"><span>${suitify(info.short || '')}</span></div>`;
   d.title = `${info.name} (${info.en})\n${info.desc}`;
+  // nhấn giữ (điện thoại) hoặc chuột phải (máy tính) để xem mô tả đầy đủ
+  let lp; d.addEventListener('touchstart', () => { lp = setTimeout(() => { lp = 'done'; showCardDetail(c); }, 450); }, { passive: true });
+  d.addEventListener('touchend', e => { if (lp === 'done') { e.preventDefault(); e.stopPropagation(); } else clearTimeout(lp); lp = null; });
+  d.addEventListener('touchmove', () => { clearTimeout(lp); lp = null; }, { passive: true });
   d.dataset.cid = c.id;
   return d;
 }
@@ -188,6 +193,16 @@ function hpDots(p) {
   return `<div class="hpbar" title="Máu: ${p.hp}/${p.maxHp}">${s}</div>`;
 }
 
+// ---------- Lá mới vào tay ----------
+const fresh = new Map();
+function markFresh(a, b) {
+  const pa = a?.players.find(p => p.id === myId), pb = b?.players.find(p => p.id === myId);
+  if (!pa?.hand || !pb?.hand) return;
+  const old = new Set(pa.hand.map(c => c.id)); const now = Date.now();
+  for (const c of pb.hand) if (!old.has(c.id)) fresh.set(c.id, now);
+}
+function isFresh(id) { const t = fresh.get(id); return t && Date.now() - t < 4000 * S(); }
+
 // ---------- Khung mô tả lá bài ----------
 const tip = el('div', '', ''); tip.id = 'card-tip'; document.body.appendChild(tip);
 function attachTip(ce, c, opt) {
@@ -211,6 +226,7 @@ function bubbleAt(pid, card) {
 
 function render() {
   const v = view; if (!v) return;
+  if (selectedCard && !v.players.find(p => p.id === myId)?.hand?.some(c => c.id === selectedCard)) selectedCard = null;
   const cur = v.players[v.turn];
   const pr = v.prompt;
   $('#turn-info').innerHTML = v.phase === 'ended' ? 'Ván đã kết thúc' : `Lượt ${v.turnCount} · <b>${esc(cur.name)}</b>${cur.id === myId ? ' (bạn)' : ''}`;
@@ -237,7 +253,7 @@ function render() {
       <div class="plate"><div class="pname">${esc(p.name)}</div><div class="pchar">${ch.name}</div>${hpDots(p)}<div class="stats">${handFan(p.handCount)}<span class="rngbig" title="Tầm bắn của ${esc(p.name)}">🎯 ${p.gunRange}</span></div>${role}</div>
       <div class="equip ${x < 50 ? 'right' : 'left'}"></div>`;
     const eq = seat.querySelector('.equip');
-    for (const c of p.table) { const info = CARD_INFO[c.type]; const m = el('span', 'eqchip ' + info.kind, `${imgTag(c.type)}<b>${info.name}</b>`); m.title = `${info.name}: ${info.desc}`; eq.appendChild(m); }
+    for (const c of p.table) { const info = CARD_INFO[c.type]; const m = el('span', 'eqchip ' + info.kind, `${imgTag(c.type)}<b>${info.name}</b>`); m.title = `${info.name}: ${info.desc}`; attachTip(m, c); m.onclick = e => { e.stopPropagation(); if (matchMedia('(hover: none)').matches) showCardDetail(c); }; m.oncontextmenu = e => { e.preventDefault(); e.stopPropagation(); showCardDetail(c); }; eq.appendChild(m); }
     // chọn mục tiêu
     if (selectedCard && v.myOptions?.[selectedCard]?.targets?.includes(p.id)) { seat.classList.add('targetable'); seat.onclick = () => chooseTarget(p); }
     else if (selectedCard && v.myOptions?.[selectedCard]?.targets) { seat.classList.add('out'); seat.onclick = () => toast(`${p.name} ngoài tầm (cách ${p.distance}, tầm của bạn ${me().gunRange})`); }
@@ -249,7 +265,7 @@ function render() {
   // ---- Giữa bàn ----
   $('#deck').innerHTML = backHTML('sm') + `<div class="pile-count">${v.deckCount}</div>`;
   const dp = $('#discard'); dp.innerHTML = '';
-  if (v.discardTop) dp.appendChild(cardEl(v.discardTop, 'sm')); else dp.innerHTML = '<div class="pile-empty">Chồng bỏ</div>';
+  if (v.discardTop) { const dc = cardEl(v.discardTop, 'sm'); attachTip(dc, v.discardTop); dp.appendChild(dc); } else dp.innerHTML = '<div class="pile-empty">Chồng bỏ</div>';
   renderPrompt(); renderFeed();
 
   // ---- Khu của tôi ----
@@ -266,14 +282,14 @@ function render() {
     <div class="me-skill"><span class="lbl">Kỹ năng · ${ch.name}</span>${suitify(ch.desc)}</div></div>`;
   $('#me-info').onclick = () => showIntro();
   const mt = $('#me-table'); mt.innerHTML = '';
-  for (const c of m.table) mt.appendChild(cardEl(c, 'sm'));
+  for (const c of m.table) { const tc = cardEl(c, 'sm'); attachTip(tc, c); mt.appendChild(tc); }
 
   // ---- Tay bài (xoè quạt) ----
   const hand = $('#me-hand'); hand.innerHTML = '';
   const responding = pr && pr.player === myId && pr.type === 'respond';
   const discarding = pr && pr.player === myId && pr.type === 'discard';
   const cards = m.hand || []; const cnt = cards.length;
-  hand.style.setProperty('--overlap', cnt <= 4 ? '-2px' : cnt <= 6 ? '-14px' : '-26px');
+  hand.style.setProperty('--overlap', cnt <= 4 ? '-2px' : cnt <= 6 ? '-12px' : '-24px');
   cards.forEach((c, i) => {
     const ce = cardEl(c);
     const mid = (cnt - 1) / 2; const off = i - mid;
@@ -293,6 +309,7 @@ function render() {
       else { ce.classList.add('disabled'); ce.title += '\n⛔ ' + o.reason; ce.onclick = () => toast(o.reason); }
     }
     attachTip(ce, c, v.myOptions?.[c.id]);
+    if (isFresh(c.id)) ce.classList.add('fresh');
     hand.appendChild(ce);
   });
   renderActions(); renderLog();
@@ -330,6 +347,7 @@ function renderPrompt() {
       p.classList.add('quiet');
       if (cur.id !== myId) { p.innerHTML = `⏳ Đang tới lượt <b>${esc(cur.name)}</b>…`; return; }
       p.classList.add('hint');
+      if (selectedCard && !me().hand.some(x => x.id === selectedCard)) selectedCard = null;
       if (selectedCard) { const c = me().hand.find(x => x.id === selectedCard); p.innerHTML = `👉 Bấm vào người <b>sáng viền đỏ</b> để dùng <b>${CARD_INFO[c.type].name}</b>. Người bị mờ là ở ngoài tầm.`; return; }
       const inRange = v.players.filter(q => q.alive && q.id !== myId && q.distance != null && q.distance <= me().gunRange).map(q => esc(q.name));
       p.innerHTML = `<b>Lượt của bạn!</b> Bấm các lá <b>sáng màu</b> để đánh, xong bấm <b>Kết thúc lượt</b>.<br><span class="inrange">🎯 Trong tầm bắn (≤ ${me().gunRange}): ${inRange.length ? inRange.join(', ') : 'chưa ai – cần súng tầm xa hơn'}</span>`;
@@ -389,12 +407,26 @@ function chooseTarget(p) {
   for (const c of p.table) { const ce = cardEl(c, 'sm'); ce.classList.add('playable'); ce.onclick = () => { closeModal(); send({ type: 'play_card', cardId: selectedCard, target: p.id, pick: c.id }); }; row.appendChild(ce); }
   $('#pick-cancel').onclick = closeModal;
 }
+function showCardDetail(c) {
+  const info = CARD_INFO[c.type]; const red = c.suit === 'H' || c.suit === 'D';
+  const big = cardEl(c, 'lg').outerHTML;
+  openModal(`<div class="detail">${big}<div class="detail-txt"><div class="lbl">${info.kind === 'gun' ? 'Súng · tầm ' + info.range : KIND_TAG[info.kind]} · ${rankLabel(c.rank)}${suitify(SUIT_SYMBOL[c.suit])}</div>
+    <h3>${info.name} <small>${info.en}</small></h3><p>${suitify(info.desc)}</p>
+    <p class="muted" style="font-size:12px">${info.kind === 'brown' ? 'Lá nâu: dùng ngay rồi bỏ.' : 'Lá xanh: đặt trước mặt, tác dụng đến khi bị lấy hoặc bỏ.'}</p></div></div>
+    <button class="btn" id="d-close">Đóng</button>`);
+  $('#d-close').onclick = closeModal;
+}
 function showCharacter(p) {
-  const role = p.role ? roleCardHTML(p.role, 'lg') : '';
-  openModal(`<div class="cards">${charCardHTML(p.character, 'lg')}${role}</div><h3>${esc(p.name)}</h3>
-    <p>${p.alive ? `Máu ${p.hp}/${p.maxHp} · ${p.handCount} lá trên tay · tầm bắn ${p.gunRange}` : 'Đã bị loại'}${p.distance != null ? ` · cách bạn ${p.distance}` : ''}</p>
+  const ch = CHARACTERS[p.character];
+  const roleTxt = p.role ? `${ROLES[p.role].icon} ${ROLES[p.role].name}` : '❓ Chưa lộ vai trò';
+  const eq = p.table.length ? p.table.map(c => `<div class="eqrow" data-cid="${c.id}">${imgTag(c.type)}<div><b>${CARD_INFO[c.type].name}</b><span>${suitify(CARD_INFO[c.type].desc)}</span></div></div>`).join('') : '<p class="muted">Chưa có trang bị nào.</p>';
+  openModal(`<div class="charview"><div class="cv-ava">${avatarTag(p.character)}</div><div class="cv-head"><h3>${esc(p.name)}</h3><div class="cv-role">${roleTxt}</div>${hpDots(p)}</div></div>
+    <div class="cv-stats"><div><b>${p.gunRange}</b><small>tầm bắn</small></div>${p.distance != null ? `<div><b>${p.distance}</b><small>cách bạn</small></div>` : ''}<div><b>${p.handCount}</b><small>lá trên tay</small></div></div>
+    <div class="cv-box"><span class="lbl">Nhân vật · ${ch.name}</span>${suitify(ch.desc)}</div>
+    <div class="cv-box"><span class="lbl">Trang bị trước mặt</span>${eq}</div>
     <button class="btn" id="m-close">Đóng</button>`);
   $('#m-close').onclick = closeModal;
+  $('#modal-box').querySelectorAll('.eqrow').forEach(r => r.onclick = () => showCardDetail(p.table.find(c => c.id === r.dataset.cid)));
 }
 function openModal(html) { $('#modal-box').innerHTML = html; $('#modal').classList.remove('hidden'); }
 function closeModal() { $('#modal').classList.add('hidden'); }
@@ -433,21 +465,23 @@ function animateDiff(a, b) {
     let m;
     if ((m = line.match(/^(.+) 💥 bắn (.+)!$/))) {
       const s = pidByName(b, m[1]), t = pidByName(b, m[2]);
-      sfx.shot(); shoot(anchorFor(s), anchorFor(t)); hitDelay = 300 * S();
+      const gun = b.players.find(p => p.id === s)?.table.find(c => CARD_INFO[c.type].kind === 'gun')?.type;
+      gunSfx(gun); shoot(anchorFor(s), anchorFor(t)); hitDelay = 300 * S();
     } else if ((m = line.match(/^(.+) quét Súng Gatling!$/))) {
-      const s = pidByName(b, m[1]); sfx.shot();
-      b.players.filter(p => p.alive && p.id !== s).forEach((p, i) => { shoot(anchorFor(s), anchorFor(p.id), { delay: i * 110 }); setTimeout(() => sfx.shot(), i * 110); });
+      const s = pidByName(b, m[1]); cardSfx('gatling');
+      b.players.filter(p => p.alive && p.id !== s).forEach((p, i) => shoot(anchorFor(s), anchorFor(p.id), { delay: 80 + i * 110 }));
       hitDelay = 450 * S(); screenShake();
     } else if ((m = line.match(/^(.+) gọi Thổ dân! tấn công tất cả\.$/))) {
-      const s = pidByName(b, m[1]); banner('🏹 Thổ dân tấn công!');
+      const s = pidByName(b, m[1]); banner('🏹 Thổ dân tấn công!'); cardSfx('indians');
       b.players.filter(p => p.alive && p.id !== s).forEach((p, i) => arrows(anchorFor(s), anchorFor(p.id), { delay: 200 + i * 140, onHit: () => sfx.card() }));
       hitDelay = 800 * S();
     } else if ((m = line.match(/^(.+) (?:đánh .+ né đạn|né được nhờ Thùng rượu)\.$/))) {
-      const t = pidByName(b, m[1]); sfx.dodge(); setTimeout(() => stamp(anchorFor(t), 'HỤT!'), 320 * S());
+      const t = pidByName(b, m[1]); if (/Thùng rượu/.test(line)) { cardSfx('barrel'); setTimeout(() => cardSfx('missed'), 250); } else cardSfx('missed');
+      setTimeout(() => stamp(anchorFor(t), 'HỤT!'), 320 * S());
     } else if ((m = line.match(/^💥 Thuốc nổ nổ! (.+) mất 3 máu\.$/))) {
       const t = pidByName(b, m[1]); sfx.boom(); explode(anchorFor(t));
     } else if ((m = line.match(/thách (.+) Đấu súng!$/))) {
-      banner('⚔ Đấu súng!', m[1].trim());
+      banner('⚔ Đấu súng!', m[1].trim()); cardSfx('duel');
     } else if ((m = line.match(/nhốt (.+) vào Nhà tù\.$/))) {
       const t = pidByName(b, m[1]); setTimeout(() => stamp(anchorFor(t), 'NHÀ TÙ'), 350);
     } else if ((m = line.match(/^(.+) bị giam, mất lượt\.$/))) {
@@ -458,8 +492,30 @@ function animateDiff(a, b) {
       banner('🏪 Tạp hóa', 'Mỗi người chọn 1 lá');
     }
   }
+  // Lấy bài của người khác: lá bay từ người bị lấy về người lấy
+  let discardSrc = null;
+  const byChar = ch => b.players.find(p => p.character === ch)?.id;
+  for (const line of lines) {
+    let m, taker = null, victim = null;
+    if ((m = line.match(/^(.+) dùng Hoảng loạn! lấy 1 lá của (.+)\.$/))) { taker = pidByName(b, m[1]); victim = pidByName(b, m[2]); discardSrc = taker; }
+    else if ((m = line.match(/^(.+) dùng Cat Balou,/))) { discardSrc = null; }
+    else if ((m = line.match(/^El Gringo lấy 1 lá từ tay (.+)\.$/))) { taker = byChar('elgringo'); victim = pidByName(b, m[1]); }
+    else if ((m = line.match(/^Jesse Jones rút 1 lá từ tay (.+) và/))) { taker = byChar('jessejones'); victim = pidByName(b, m[1]); }
+    else if ((m = line.match(/^Vulture Sam lấy hết bài của (.+)\.$/))) { taker = byChar('vulturesam'); victim = pidByName(b, m[1]); }
+    if (!taker || !victim) continue;
+    const mine = b.players.find(p => p.id === myId);
+    if (taker === myId && mine?.hand) {
+      const before = new Set((a.players.find(p => p.id === myId)?.hand || []).map(c => c.id));
+      const got = mine.hand.filter(c => !before.has(c.id)).slice(0, line.startsWith('Jesse') ? 1 : 99);
+      got.slice(0, 3).forEach((c, i) => fly(cardEl(c, 'sm').outerHTML, anchorFor(victim), $('#me-hand'), { delay: 150 + i * 150, duration: 650 }));
+      if (got.length) setTimeout(() => toast(`🤠 Bạn lấy được: ${got.map(cardLabel).join(', ')}`, true), 700 * S());
+    } else {
+      fly(backHTML('sm'), anchorFor(victim), anchorFor(taker), { delay: 150, duration: 650 });
+      if (victim === myId) setTimeout(() => toast(`${b.players.find(p => p.id === taker)?.name} lấy mất 1 lá của bạn!`), 600 * S());
+    }
+  }
   const txt = lines.join(' ');
-  if (/hồi 1 máu|uống Bia|Quán rượu/.test(txt)) sfx.heal();
+  if (/hồi 1 máu/.test(txt) && !/uống Bia|Quán rượu/.test(txt)) sfx.heal();
   if (/☠️/.test(txt)) sfx.death();
   // Lượt mới
   if (a.turn !== b.turn && b.phase === 'playing') { sfx.turn(); const cur = b.players[b.turn]; if (cur.id === myId) banner('Tới lượt bạn!'); }
@@ -472,13 +528,16 @@ function animateDiff(a, b) {
     if (pb.hp < pa.hp) setTimeout(() => { shake(box); flash(box); floatText(txtAt, `-${pa.hp - pb.hp}`); sfx.hit(); }, hitDelay);
     if (pb.hp > pa.hp && pb.alive) { floatText(txtAt, `+${pb.hp - pa.hp}`, '#3f8f4f'); flash(box, 'flash-heal'); sparkle(txtAt); }
     if (pa.alive && !pb.alive) setTimeout(() => banner(`☠ ${esc(pb.name)} bị loại`, pb.role ? ROLES[pb.role].name : ''), hitDelay + 300);
-    if (pb.table.length > pa.table.length) { const nc = pb.table.find(c => !pa.table.some(x => x.id === c.id)); if (nc) { if (nc.type !== 'dynamite' || pa.handCount > pb.handCount) bubbleAt(nc.type === 'jail' ? a.players[a.turn].id : pb.id, nc); const tgt = pb.id === myId ? $('#me-table') : anchor?.querySelector('.equip'); const src = a.players[a.turn].id === myId ? $('#me-hand') : seatEl(a.players[a.turn].id); fly(cardEl(nc, 'sm').outerHTML, src || anchor, tgt || anchor, { duration: 450 }); } }
+    if (pb.table.length > pa.table.length) { const nc = pb.table.find(c => !pa.table.some(x => x.id === c.id)); if (nc) { cardSfx(nc.type); if (nc.type !== 'dynamite' || pa.handCount > pb.handCount) bubbleAt(nc.type === 'jail' ? a.players[a.turn].id : pb.id, nc); const tgt = pb.id === myId ? $('#me-table') : anchor?.querySelector('.equip'); const src = a.players[a.turn].id === myId ? $('#me-hand') : seatEl(a.players[a.turn].id); fly(cardEl(nc, 'sm').outerHTML, src || anchor, tgt || anchor, { duration: 450 }); } }
   }
   // Lá vừa bỏ bay về chồng bỏ
   if (b.discardTop && (!a.discardTop || a.discardTop.id !== b.discardTop.id)) {
-    const loser = b.players.find(pb => { const pa = a.players.find(x => x.id === pb.id); return pa && pb.handCount < pa.handCount; });
+    const loser = discardSrc ? b.players.find(p => p.id === discardSrc) : b.players.find(pb => { const pa = a.players.find(x => x.id === pb.id); return pa && pb.handCount < pa.handCount; });
     fly(cardEl(b.discardTop, 'sm').outerHTML, loser ? anchorFor(loser.id) : $('#deck'), $('#discard'), { duration: 420, rotate: (Math.random() * 10 - 5) });
-    if (loser && b.phase === 'playing' && !(b.prompt && b.prompt.type === 'discard' && b.prompt.player === loser.id) && !(a.prompt && a.prompt.type === 'discard')) bubbleAt(loser.id, b.discardTop);
+    if (loser && b.phase === 'playing' && !(b.prompt && b.prompt.type === 'discard' && b.prompt.player === loser.id) && !(a.prompt && a.prompt.type === 'discard')) {
+      bubbleAt(loser.id, b.discardTop);
+      if (['stagecoach', 'wellsfargo', 'store', 'panic', 'catbalou', 'beer', 'saloon'].includes(b.discardTop.type)) cardSfx(b.discardTop.type);
+    }
   }
   if (a.phase === 'playing' && b.phase === 'ended') {
     const names = { law: 'Phe Cảnh sát thắng!', outlaw: 'Tội phạm thắng!', renegade: 'Kẻ hai mặt thắng!' };

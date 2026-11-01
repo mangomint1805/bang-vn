@@ -146,3 +146,14 @@ export function cardLabel(c) { return `${CARD_INFO[c.type].name} ${SUIT_SYMBOL[c
 export function suitify(html) {
   return html.replace(/[♥♦]/g, m => `<span class="suit red">${m}</span>`).replace(/[♠♣]/g, m => `<span class="suit black">${m}</span>`);
 }
+
+// Mô tả ngắn in trên mặt lá
+const SHORT = {
+  bang: 'Bắn 1 người trong tầm', missed: 'Né 1 phát Bắn!', beer: 'Hồi 1 máu', panic: 'Lấy 1 lá của người cách 1',
+  catbalou: 'Bắt 1 người bỏ 1 lá', stagecoach: 'Rút 2 lá', wellsfargo: 'Rút 3 lá', store: 'Mỗi người chọn 1 lá',
+  saloon: 'Mọi người hồi 1 máu', indians: 'Ai không bỏ Bắn! mất 1 máu', duel: 'Thi bỏ Bắn!, ai thua mất 1 máu', gatling: 'Bắn tất cả người khác',
+  dynamite: 'Lật ra ♠2–9 thì nổ, mất 3 máu', jail: 'Nhốt 1 người, lật ♥ mới thoát', barrel: 'Bị bắn: lật ra ♥ là né', scope: 'Thấy người khác gần hơn 1',
+  mustang: 'Người khác thấy bạn xa hơn 1', volcanic: 'Tầm 1 · bắn không giới hạn', schofield: 'Súng · bắn xa 2', remington: 'Súng · bắn xa 3',
+  carabine: 'Súng · bắn xa 4', winchester: 'Súng · bắn xa 5',
+};
+for (const k in SHORT) CARD_INFO[k].short = SHORT[k];
